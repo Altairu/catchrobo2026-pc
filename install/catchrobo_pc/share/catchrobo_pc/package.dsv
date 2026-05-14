@@ -1,0 +1,6 @@
+source;share/catchrobo_pc/hook/pythonpath.ps1
+source;share/catchrobo_pc/hook/pythonpath.dsv
+source;share/catchrobo_pc/hook/pythonpath.sh
+source;share/catchrobo_pc/hook/ament_prefix_path.ps1
+source;share/catchrobo_pc/hook/ament_prefix_path.dsv
+source;share/catchrobo_pc/hook/ament_prefix_path.sh

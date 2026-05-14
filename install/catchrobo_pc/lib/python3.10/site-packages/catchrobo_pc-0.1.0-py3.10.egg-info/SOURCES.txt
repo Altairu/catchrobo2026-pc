@@ -1,0 +1,16 @@
+package.xml
+setup.cfg
+setup.py
+../../build/catchrobo_pc/catchrobo_pc.egg-info/PKG-INFO
+../../build/catchrobo_pc/catchrobo_pc.egg-info/SOURCES.txt
+../../build/catchrobo_pc/catchrobo_pc.egg-info/dependency_links.txt
+../../build/catchrobo_pc/catchrobo_pc.egg-info/entry_points.txt
+../../build/catchrobo_pc/catchrobo_pc.egg-info/requires.txt
+../../build/catchrobo_pc/catchrobo_pc.egg-info/top_level.txt
+../../build/catchrobo_pc/catchrobo_pc.egg-info/zip-safe
+catchrobo_pc/__init__.py
+catchrobo_pc/web_gui_node.py
+catchrobo_pc/static/index.html
+catchrobo_pc/static/css/style.css
+catchrobo_pc/static/js/app.js
+resource/catchrobo_pc
