@@ -13,4 +13,5 @@ catchrobo_pc/web_gui_node.py
 catchrobo_pc/static/index.html
 catchrobo_pc/static/css/style.css
 catchrobo_pc/static/js/app.js
+launch/pc.launch.py
 resource/catchrobo_pc

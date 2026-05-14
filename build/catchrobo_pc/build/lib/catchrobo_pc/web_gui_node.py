@@ -24,9 +24,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import uvicorn
 
+from ament_index_python.packages import get_package_prefix
 
-# static ファイルのパス (パッケージ内 static/ ディレクトリ)
-STATIC_DIR = Path(__file__).parent / 'static'
+# static ファイルのパス (インストール先 lib/catchrobo_pc/static/)
+STATIC_DIR = Path(get_package_prefix('catchrobo_pc')) / 'lib' / 'catchrobo_pc' / 'static'
 
 
 class WebGuiNode(Node):
