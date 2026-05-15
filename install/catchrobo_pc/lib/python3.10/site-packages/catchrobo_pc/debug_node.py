@@ -145,17 +145,13 @@ class PCDebugNode(Node):
                 enc_rps = mdd1.get('enc_rps', [])
                 can_alive = (now - self.rates['can']['last']) < 0.5 if self.rates['can']['last'] > 0 else False
                 if sw is not None:
-                    sw_str = "  ".join(
-                        [f"SW{i}: " + ("\033[32mON " if v else "\033[31mOFF") for i, v in enumerate(sw)]
-                    )
                     for i, v in enumerate(sw):
                         if row >= h - 2: break
                         disp = "ON " if v else "OFF"
                         c = (curses.color_pair(1) if v else curses.color_pair(2)) if can_alive else curses.color_pair(2)
                         stdscr.addstr(row, 2, f"SW{i}: ", curses.A_BOLD)
                         stdscr.addstr(disp, c)
-                        stdscr.addstr("  ", curses.color_pair(5))
-                    row += 1
+                        row += 1
                 else:
                     stdscr.addstr(row, 2, "(can_status に MDD1 データなし)", curses.color_pair(2))
                     row += 1
