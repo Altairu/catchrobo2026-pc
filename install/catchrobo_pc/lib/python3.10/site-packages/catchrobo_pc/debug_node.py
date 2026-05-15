@@ -1,10 +1,12 @@
 import rclpy
+import rclpy.logging
 from rclpy.node import Node
 from std_msgs.msg import String, Float32MultiArray
 import curses
 import threading
 import time
 import json
+import os
 
 class PCDebugNode(Node):
     """
@@ -36,6 +38,8 @@ class PCDebugNode(Node):
         self._draw_thread = threading.Thread(target=self._run_curses, daemon=True)
         self._draw_thread.start()
         
+        self.get_logger().set_level(rclpy.logging.LoggingSeverity.WARN)
+
         self.get_logger().info('PC Debug Monitor Node started.')
 
     def _update_rate(self, key):
@@ -68,7 +72,16 @@ class PCDebugNode(Node):
             self._update_rate('motor')
 
     def _run_curses(self):
-        curses.wrapper(self._curses_main)
+        # ROS2ログはstderrに書き込まれるため、curses実行中はfd2を/dev/nullへ退避
+        devnull_fd = os.open(os.devnull, os.O_WRONLY)
+        old_stderr_fd = os.dup(2)
+        os.dup2(devnull_fd, 2)
+        os.close(devnull_fd)
+        try:
+            curses.wrapper(self._curses_main)
+        finally:
+            os.dup2(old_stderr_fd, 2)
+            os.close(old_stderr_fd)
 
     def _curses_main(self, stdscr):
         curses.curs_set(0)
