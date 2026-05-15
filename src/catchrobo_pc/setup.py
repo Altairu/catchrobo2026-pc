@@ -30,6 +30,7 @@ setup(
     entry_points={
         'console_scripts': [
             'web_gui_node = catchrobo_pc.web_gui_node:main',
+            'debug_node = catchrobo_pc.debug_node:main',
         ],
     },
 )
