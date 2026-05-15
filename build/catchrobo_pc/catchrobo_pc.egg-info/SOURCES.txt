@@ -9,6 +9,7 @@ setup.py
 ../../build/catchrobo_pc/catchrobo_pc.egg-info/top_level.txt
 ../../build/catchrobo_pc/catchrobo_pc.egg-info/zip-safe
 catchrobo_pc/__init__.py
+catchrobo_pc/debug_node.py
 catchrobo_pc/web_gui_node.py
 catchrobo_pc/static/index.html
 catchrobo_pc/static/css/style.css

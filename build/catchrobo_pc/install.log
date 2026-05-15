@@ -1,5 +1,7 @@
+/home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages/catchrobo_pc/debug_node.py
 /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages/catchrobo_pc/web_gui_node.py
 /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages/catchrobo_pc/__init__.py
+/home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages/catchrobo_pc/__pycache__/debug_node.cpython-310.pyc
 /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages/catchrobo_pc/__pycache__/web_gui_node.cpython-310.pyc
 /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages/catchrobo_pc/__pycache__/__init__.cpython-310.pyc
 /home/altair/catchrobo2026-pc/install/catchrobo_pc/share/ament_index/resource_index/packages/catchrobo_pc
@@ -15,4 +17,5 @@
 /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages/catchrobo_pc-0.1.0-py3.10.egg-info/entry_points.txt
 /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages/catchrobo_pc-0.1.0-py3.10.egg-info/PKG-INFO
 /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages/catchrobo_pc-0.1.0-py3.10.egg-info/requires.txt
+/home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc/debug_node
 /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc/web_gui_node

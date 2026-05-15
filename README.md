@@ -73,6 +73,7 @@ NUCが起動していれば `/catchrobo/available_ports` トピックが自動�
 | `/catchrobo/can_status` | `String` (JSON) | CAN接続状態・モジュール状態・統計 |
 | `/catchrobo/serial_status` | `String` (JSON) | シリアル接続状態・統計 |
 | `/catchrobo/available_ports` | `String` (JSON) | 利用可能ポート一覧 |
+| `/catchrobo/switch_status` | `String` (JSON) | マイコンのスイッチ/センサー状態 |
 
 ### `module_cmd` JSON フォーマット
 
@@ -146,9 +147,12 @@ pip3 install fastapi uvicorn[standard] pyserial
 cd ~/catchrobo2026-pc
 source /opt/ros/humble/setup.bash
 colcon build --packages-select catchrobo_pc
+source install/setup.bash
 ```
 
-### 起動
+### 通常起動 (WebGUI + デバッグモニター)
+
+> WezTerm が起動している状態で実行すること。デバッグモニターが自動的に新タブで開く。
 
 ```bash
 cd ~/catchrobo2026-pc
@@ -163,10 +167,25 @@ ROS_DOMAIN_ID=0 ros2 launch catchrobo_pc pc.launch.py
 http://localhost:8080
 ```
 
-### ノードを直接起動する場合
+### ノードを個別に起動する場合
 
+**WebGUI のみ:**
 ```bash
 ROS_DOMAIN_ID=0 ros2 run catchrobo_pc web_gui_node
+```
+
+**デバッグモニターのみ (別タブ/別ターミナルで):**
+```bash
+ROS_DOMAIN_ID=0 ros2 run catchrobo_pc debug_node
+```
+
+> `q` キーで終了。
+
+### ソース更新後の再ビルド
+
+```bash
+cd ~/catchrobo2026-pc
+colcon build --packages-select catchrobo_pc && source install/setup.bash
 ```
 
 ---
