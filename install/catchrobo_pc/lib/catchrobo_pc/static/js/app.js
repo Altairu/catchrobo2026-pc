@@ -54,6 +54,17 @@ const state = {
   // CAN/Serial ステータス
   canStatus: {},
   serialStatus: {},
+
+  // 外部コントローラ状態
+  externalCtrl: {
+    enabled: false,
+    online: false,
+    port: '',
+    last_rx_age: 999,
+    packet_count: 0,
+    mdd1_deg: [0, 0, 0, 0],
+    mdd1_lsw: [0, 0, 0, 0],
+  },
 };
 
 // ─────────────────────────────────────────────────────────
@@ -67,6 +78,7 @@ function connectWs() {
     state.wsConnected = true;
     updateWsIndicator(true);
     addLog('WebSocket 接続', 'success');
+    sendWs({ cmd: 'ext_ctrl_get_status' });
   };
 
   state.ws.onclose = () => {
@@ -117,6 +129,54 @@ function handleServerMessage(msg) {
       state.availablePorts = msg.data.ports || [];
       updatePortSelectors();
       break;
+    case 'external_controller':
+      state.externalCtrl = msg.data || state.externalCtrl;
+      renderExternalControllerUI();
+      break;
+  }
+}
+
+function setExternalControllerMode(enabled) {
+  sendWs({ cmd: 'ext_ctrl_mode', enabled: !!enabled });
+}
+
+function toggleExternalControllerMode() {
+  const enabled = !state.externalCtrl.enabled;
+  setExternalControllerMode(enabled);
+  addLog(`外部コントローラモード → ${enabled ? 'ON' : 'OFF'}`, enabled ? 'success' : 'warn');
+}
+
+function renderExternalControllerUI() {
+  const s = state.externalCtrl;
+  const status = document.getElementById('ext-ctrl-status');
+  const detail = document.getElementById('ext-ctrl-detail');
+  const map = document.getElementById('ext-ctrl-map');
+  const btn = document.getElementById('btn-ext-ctrl-mode');
+
+  if (status) {
+    const mode = s.enabled ? 'MODE: ON' : 'MODE: OFF';
+    const link = s.online ? 'ONLINE' : 'OFFLINE';
+    status.textContent = `${mode} / ${link}`;
+    status.style.color = s.online ? 'var(--success)' : 'var(--danger)';
+  }
+
+  if (detail) {
+    const p = s.port || '-';
+    const age = Number.isFinite(s.last_rx_age) ? s.last_rx_age.toFixed(2) : '999.00';
+    detail.textContent = `PORT: ${p}  age:${age}s  pkt:${s.packet_count ?? 0}`;
+  }
+
+  if (map) {
+    const d = s.mdd1_deg || [0, 0, 0, 0];
+    const sw = s.mdd1_lsw || [0, 0, 0, 0];
+    const swText = sw.map((v, i) => `SW${i + 1}:${v ? 'ON' : 'off'}`).join('  ');
+    map.textContent = `M1→RM2:${(+d[0] || 0).toFixed(1)}°  M2→RM1:${(+d[1] || 0).toFixed(1)}°  M3:${(+d[2] || 0).toFixed(1)}° (45°閾値でSV_2 V1)  ${swText}`;
+  }
+
+  if (btn) {
+    btn.textContent = s.enabled ? '外部コントローラ: ON' : '外部コントローラ: OFF';
+    btn.classList.toggle('btn-success', !!s.enabled);
+    btn.classList.toggle('btn-ghost', !s.enabled);
   }
 }
 

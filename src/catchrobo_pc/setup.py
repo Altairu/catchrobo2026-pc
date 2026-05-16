@@ -20,7 +20,7 @@ setup(
         (os.path.join('lib', package_name, 'static'),
          glob('catchrobo_pc/static/*.html')),
     ],
-    install_requires=['setuptools'],
+    install_requires=['setuptools', 'fastapi', 'uvicorn', 'pyserial'],
     zip_safe=True,
     maintainer='Altair',
     maintainer_email='altair@example.com',

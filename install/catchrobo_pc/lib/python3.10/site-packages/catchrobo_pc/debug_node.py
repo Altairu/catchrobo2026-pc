@@ -20,19 +20,29 @@ class PCDebugNode(Node):
         self.can_status = {}
         self.serial_status = {}
         self.motor_fb = []
+        self.ext_port = ''
+        self.ext_error = ''
+        self.ext_packet_count = 0
+        self.ext_mdd = {
+            0x01: {'deg': [0.0] * 4, 'lsw': [0] * 4, 'last': 0.0},
+            0x02: {'deg': [0.0] * 4, 'lsw': [0] * 4, 'last': 0.0},
+        }
         self._lock = threading.Lock()
+        self._stop_event = threading.Event()
 
         # レート計測用
         self.rates = {
             'can':    {'times': [], 'freq': 0.0, 'last': 0.0},
             'serial': {'times': [], 'freq': 0.0, 'last': 0.0},
             'motor':  {'times': [], 'freq': 0.0, 'last': 0.0},
+            'ext':    {'times': [], 'freq': 0.0, 'last': 0.0},
         }
 
         # --- サブスクライバー ---
         self.create_subscription(String,            '/catchrobo/can_status',    self._on_can_status,    10)
         self.create_subscription(String,            '/catchrobo/serial_status', self._on_serial_status, 10)
         self.create_subscription(Float32MultiArray, '/catchrobo/motor_fb',      self._on_motor_fb,      10)
+        self.create_subscription(String,            '/catchrobo/external_mdd_status', self._on_external_mdd_status, 10)
 
         # --- 描画スレッド ---
         self._draw_thread = threading.Thread(target=self._run_curses, daemon=True)
@@ -70,6 +80,24 @@ class PCDebugNode(Node):
         with self._lock:
             self.motor_fb = list(msg.data)
             self._update_rate('motor')
+
+    def _on_external_mdd_status(self, msg: String):
+        with self._lock:
+            try:
+                data = json.loads(msg.data)
+                dev_id = int(data.get('device_id', 0))
+                if dev_id not in (0x01, 0x02):
+                    return
+
+                self.ext_port = data.get('port', '')
+                self.ext_packet_count = int(data.get('packet_count', self.ext_packet_count))
+                self.ext_mdd[dev_id]['deg'] = [float(v) for v in data.get('deg', [0.0, 0.0, 0.0, 0.0])[:4]]
+                self.ext_mdd[dev_id]['lsw'] = [int(v) for v in data.get('lsw', [0, 0, 0, 0])[:4]]
+                self.ext_mdd[dev_id]['last'] = float(data.get('stamp', time.time()))
+                self.ext_error = ''
+                self._update_rate('ext')
+            except Exception as e:
+                self.ext_error = str(e)
 
     def _run_curses(self):
         # ROS2ログはstderrに書き込まれるため、curses実行中はfd2を/dev/nullへ退避
@@ -110,7 +138,7 @@ class PCDebugNode(Node):
                 # --- 通信統計 (PCでの受信状況) ---
                 stdscr.addstr(row, 0, "[ TOPIC RATES & JITTER ]", curses.color_pair(3) | curses.A_BOLD)
                 row += 1
-                for label, key in [("CAN Status   ", "can"), ("Serial Status", "serial"), ("Motor FB     ", "motor")]:
+                for label, key in [("CAN Status   ", "can"), ("Serial Status", "serial"), ("Motor FB     ", "motor"), ("Ext MDD Topic", "ext")]:
                     freq = self.rates[key]['freq']
                     last_time = self.rates[key]['last']
                     dt = now - last_time if last_time > 0 else 999
@@ -180,6 +208,46 @@ class PCDebugNode(Node):
                     if enc_rps:
                         rps_str = "  ".join([f"M{i}:{v:>6.2f}rps" for i, v in enumerate(enc_rps)])
                         stdscr.addstr(row, 2, rps_str, curses.color_pair(4))
+                        row += 1
+
+                # --- 外部シリアル受信 (sample packet monitor) ---
+                if row < h - 8:
+                    row += 1
+                    stdscr.addstr(row, 0, "[ EXTERNAL SERIAL (MDD monitor) ]", curses.color_pair(3) | curses.A_BOLD)
+                    row += 1
+
+                    ext_age_1 = now - self.ext_mdd[0x01]['last'] if self.ext_mdd[0x01]['last'] > 0 else 999.0
+                    ext_age_2 = now - self.ext_mdd[0x02]['last'] if self.ext_mdd[0x02]['last'] > 0 else 999.0
+                    on_1 = ext_age_1 < 0.5
+                    on_2 = ext_age_2 < 0.5
+
+                    stdscr.addstr(row, 2, "Port: ", curses.A_BOLD)
+                    stdscr.addstr(self.ext_port if self.ext_port else "-", curses.color_pair(4))
+                    stdscr.addstr(f"  pkt:{self.ext_packet_count}", curses.color_pair(5))
+                    row += 1
+
+                    if self.ext_error:
+                        err = self.ext_error[:max(10, w - 14)]
+                        stdscr.addstr(row, 2, f"Err : {err}", curses.color_pair(2))
+                        row += 1
+
+                    for dev_id, name, online in [(0x01, 'MDD1', on_1), (0x02, 'MDD2', on_2)]:
+                        d = self.ext_mdd[dev_id]['deg']
+                        swv = self.ext_mdd[dev_id]['lsw']
+                        age = now - self.ext_mdd[dev_id]['last'] if self.ext_mdd[dev_id]['last'] > 0 else 999.0
+                        col = curses.color_pair(1) if online else curses.color_pair(2)
+
+                        stdscr.addstr(row, 2, f"{name}: ", curses.A_BOLD)
+                        stdscr.addstr("ONLINE" if online else "OFFLINE", col)
+                        stdscr.addstr(f"  age:{age:4.2f}s", curses.color_pair(5))
+                        row += 1
+
+                        deg_str2 = "  ".join([f"M{i+1}:{v:+6.1f}deg" for i, v in enumerate(d)])
+                        stdscr.addstr(row, 4, deg_str2[:max(8, w - 6)], curses.color_pair(4))
+                        row += 1
+
+                        sw_str = "  ".join([f"SW{i+1}:{'ON' if bool(v) else 'off'}" for i, v in enumerate(swv)])
+                        stdscr.addstr(row, 4, sw_str[:max(8, w - 6)], curses.color_pair(5))
                         row += 1
 
             stdscr.refresh()

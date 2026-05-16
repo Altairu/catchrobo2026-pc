@@ -33,11 +33,27 @@ catchrobo2026-pc/
 
 | タブ | 機能 |
 |---|---|
-| **接続設定** | NUCのUSBポートをドロップダウンで選択・適用。CAN/シリアル統計表示 |
+| **接続設定** | NUCのUSBポートをドロップダウンで選択・適用。CAN/シリアル統計表示。外部コントローラモードON/OFF |
 | **モジュール制御** | MDD1 (PID目標値・パラメータ) / SV_1・SV_2 (バルブON/OFF) |
 | **ロボマスモーター** | 制御モード選択・5軸スライダー・フィードバック表示 |
 | **システム監視** | TX/RX/ERRカウンタ・制御モード状態 |
 | **ログ** | WebSocket通信ログのリアルタイム表示 |
+
+### 外部コントローラモード
+
+接続設定タブの **「外部コントローラ: ON/OFF」** で有効化できる。
+有効時はPC側で `/dev/ttyACM*` を自動探索し、シリアル受信したMDD1データを以下にマッピングして送信する。
+
+- `M1(deg)` → `RM2` 目標値 (`/catchrobo/motor_cmd[1]`)
+- `M2(deg)` → `RM1` 目標値 (`/catchrobo/motor_cmd[0]`)
+- `M3(deg)` > 45.0 のとき `SV_2` の `V1` を ON、45.0 以下で OFF
+
+受信パケットは `sample/sample_serial.py` と同じフォーマットを想定:
+
+```text
+[0xAA][0x55][DEV_ID][12][deg0L][deg0H]...[deg3L][deg3H][lsw0][lsw1][lsw2][lsw3][XOR]
+DEV_ID: 0x01 = MDD1
+```
 
 ### ポート選択フロー
 
@@ -64,6 +80,7 @@ NUCが起動していれば `/catchrobo/available_ports` トピックが自動�
 | `/catchrobo/motor_mode` | `String` (JSON) | 制御モード `{"mode": 0\|1\|2}` |
 | `/catchrobo/module_cmd` | `String` (JSON) | MDD/Solenoid 操作コマンド (下記参照) |
 | `/catchrobo/set_ports` | `String` (JSON) | `{"can_port":"...", "serial_port":"..."}` |
+| `/catchrobo/external_mdd_status` | `String` (JSON) | 外部コントローラ生データ (MDD1/MDD2 deg, SW, port, stamp) |
 
 ### Subscribe (NUCから受信)
 
@@ -73,7 +90,6 @@ NUCが起動していれば `/catchrobo/available_ports` トピックが自動�
 | `/catchrobo/can_status` | `String` (JSON) | CAN接続状態・モジュール状態・統計 |
 | `/catchrobo/serial_status` | `String` (JSON) | シリアル接続状態・統計 |
 | `/catchrobo/available_ports` | `String` (JSON) | 利用可能ポート一覧 |
-| `/catchrobo/switch_status` | `String` (JSON) | マイコンのスイッチ/センサー状態 |
 
 ### `module_cmd` JSON フォーマット
 
@@ -109,6 +125,26 @@ NUCが起動していれば `/catchrobo/available_ports` トピックが自動�
 | `motor_mode` | `{"cmd":"motor_mode","mode":1}` |
 | `module_cmd` | `{"cmd":"module_cmd","payload":{...}}` |
 | `set_ports` | `{"cmd":"set_ports","can_port":"...","serial_port":"..."}` |
+| `ext_ctrl_mode` | `{"cmd":"ext_ctrl_mode","enabled":true}` |
+| `ext_ctrl_get_status` | `{"cmd":"ext_ctrl_get_status"}` |
+
+### 外部シリアル中継トピック (`/catchrobo/external_mdd_status`)
+
+`web_gui_node` が `/dev/ttyACM*` から受信した sample 形式パケットを JSON として配信する。
+
+```json
+{
+  "device_id": 1,
+  "name": "MDD1",
+  "port": "/dev/ttyACM0",
+  "deg": [0.0, 0.0, 0.0, 0.0],
+  "lsw": [0, 0, 0, 0],
+  "packet_count": 123,
+  "stamp": 1778844006.12
+}
+```
+
+`debug_node` はこのトピックを購読して表示し、シリアルポートを直接開かない。
 
 ### サーバー → ブラウザ
 
@@ -118,6 +154,7 @@ NUCが起動していれば `/catchrobo/available_ports` トピックが自動�
 | `serial_status` | シリアル接続状態・フィードバック |
 | `motor_fb` | モーターフィードバック値 |
 | `available_ports` | 利用可能なシリアルポート一覧 |
+| `external_controller` | 外部コントローラ状態 (enabled/online/port/mdd1_deg/mdd1_lsw) |
 
 ---
 
@@ -202,6 +239,7 @@ colcon build --packages-select catchrobo_pc && source install/setup.bash
    - `シリアルモーターポート` からロボマスモーターのポートを選択（例: `/dev/ttyACM0`）
    - 「**ポートを適用**」ボタンを押す
    - サイドバーのバッジが `● CAN: Online` に変わることを確認
+  - 外部コントローラを使う場合は「**外部コントローラ: ON**」に切り替える
 5. **「モジュール制御」タブ** → MDDのパラメータを設定し「パラメータ送信」→ 目標値を操作
 6. **「ロボマスモーター」タブ** → モードを `PID制御` に切り替え → スライダーで操作
 

@@ -1,1 +1,4 @@
+fastapi
+pyserial
 setuptools
+uvicorn
