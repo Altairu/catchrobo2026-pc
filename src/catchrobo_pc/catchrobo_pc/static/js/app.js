@@ -171,7 +171,7 @@ function renderExternalControllerUI() {
     const d = s.mdd1_deg || [0, 0, 0, 0];
     const sw = s.mdd1_lsw || [0, 0, 0, 0];
     const swText = sw.map((v, i) => `SW${i + 1}:${v ? 'ON' : 'off'}`).join('  ');
-    map.textContent = `M1→RM2:${(+d[0] || 0).toFixed(1)}°  M2→RM1:${(+d[1] || 0).toFixed(1)}°  M3:${(+d[2] || 0).toFixed(1)}° (45°閾値でSV_2 V1)  ${swText}`;
+    map.textContent = `M1→RM2:${(+d[0] || 0).toFixed(1)}°  M2→RM1:${(+d[1] || 0).toFixed(1)}°  M3:${(+d[2] || 0).toFixed(1)}° (45°閾値でSV_2 V6)  ${swText}`;
   }
 
   if (btn) {

@@ -365,14 +365,14 @@ class WebGuiNode(Node):
         motor_msg.data = targets[:6]
         self.pub_motor_cmd.publish(motor_msg)
 
-        # M3 が 45deg 超なら SV_2 の V1(bit0) を ON
+        # M3 が 45deg 超なら SV_2 の V6(bit5) を ON
         want_on = float(deg[2]) > 45.0
-        current_on = (self._sv2_valves_cache & 0x01) != 0
+        current_on = (self._sv2_valves_cache & 0x20) != 0
         if want_on != current_on:
             if want_on:
-                self._sv2_valves_cache |= 0x01
+                self._sv2_valves_cache |= 0x20
             else:
-                self._sv2_valves_cache &= ~0x01
+                self._sv2_valves_cache &= ~0x20
 
             module_msg = String()
             module_msg.data = json.dumps({

@@ -46,7 +46,7 @@ catchrobo2026-pc/
 
 - `M1(deg)` → `RM2` 目標値 (`/catchrobo/motor_cmd[1]`)
 - `M2(deg)` → `RM1` 目標値 (`/catchrobo/motor_cmd[0]`)
-- `M3(deg)` > 45.0 のとき `SV_2` の `V1` を ON、45.0 以下で OFF
+- `M3(deg)` > 45.0 のとき `SV_2` の `V6` を ON、45.0 以下で OFF
 
 受信パケットは `sample/sample_serial.py` と同じフォーマットを想定:
 
