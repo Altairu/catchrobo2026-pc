@@ -31,13 +31,13 @@ catchrobo2026-pc/
 
 ブラウザで `http://localhost:8080` を開くと5つのタブが使用可能。
 
-| タブ | 機能 |
-|---|---|
-| **接続設定** | NUCのUSBポートをドロップダウンで選択・適用。CAN/シリアル統計表示。外部コントローラモードON/OFF |
-| **モジュール制御** | MDD1 (PID目標値・パラメータ) / SV_1・SV_2 (バルブON/OFF) |
-| **ロボマスモーター** | 制御モード選択・5軸スライダー・フィードバック表示 |
-| **システム監視** | TX/RX/ERRカウンタ・制御モード状態 |
-| **ログ** | WebSocket通信ログのリアルタイム表示 |
+| タブ                 | 機能                                                                                           |
+| -------------------- | ---------------------------------------------------------------------------------------------- |
+| **接続設定**         | NUCのUSBポートをドロップダウンで選択・適用。CAN/シリアル統計表示。外部コントローラモードON/OFF |
+| **モジュール制御**   | MDD1 (PID目標値・パラメータ) / SV_1・SV_2 (バルブON/OFF)                                       |
+| **ロボマスモーター** | 制御モード選択・6軸スライダー・フィードバック表示                                              |
+| **システム監視**     | TX/RX/ERRカウンタ・制御モード状態                                                              |
+| **ログ**             | WebSocket通信ログのリアルタイム表示                                                            |
 
 ### 外部コントローラモード
 
@@ -74,22 +74,22 @@ NUCが起動していれば `/catchrobo/available_ports` トピックが自動�
 
 ### Publish (NUCへ送信)
 
-| トピック | 型 | 内容 |
-|---|---|---|
-| `/catchrobo/motor_cmd` | `Float32MultiArray` | 5軸目標値 [RM1, RM2, LM1, LM2, SM1] (degree) |
-| `/catchrobo/motor_mode` | `String` (JSON) | 制御モード `{"mode": 0\|1\|2}` |
-| `/catchrobo/module_cmd` | `String` (JSON) | MDD/Solenoid 操作コマンド (下記参照) |
-| `/catchrobo/set_ports` | `String` (JSON) | `{"can_port":"...", "serial_port":"..."}` |
-| `/catchrobo/external_mdd_status` | `String` (JSON) | 外部コントローラ生データ (MDD1/MDD2 deg, SW, port, stamp) |
+| トピック                         | 型                  | 内容                                                      |
+| -------------------------------- | ------------------- | --------------------------------------------------------- |
+| `/catchrobo/motor_cmd`           | `Float32MultiArray` | 6軸目標値 [RM1, RM2, LM1, LM2, SM1, LM3] (degree)         |
+| `/catchrobo/motor_mode`          | `String` (JSON)     | 制御モード `{"mode": 0\|1\|2}`                            |
+| `/catchrobo/module_cmd`          | `String` (JSON)     | MDD/Solenoid 操作コマンド (下記参照)                      |
+| `/catchrobo/set_ports`           | `String` (JSON)     | `{"can_port":"...", "serial_port":"..."}`                 |
+| `/catchrobo/external_mdd_status` | `String` (JSON)     | 外部コントローラ生データ (MDD1/MDD2 deg, SW, port, stamp) |
 
 ### Subscribe (NUCから受信)
 
-| トピック | 型 | 内容 |
-|---|---|---|
-| `/catchrobo/motor_fb` | `Float32MultiArray` | 角度×5 + RPM×2 |
-| `/catchrobo/can_status` | `String` (JSON) | CAN接続状態・モジュール状態・統計 |
-| `/catchrobo/serial_status` | `String` (JSON) | シリアル接続状態・統計 |
-| `/catchrobo/available_ports` | `String` (JSON) | 利用可能ポート一覧 |
+| トピック                     | 型                  | 内容                              |
+| ---------------------------- | ------------------- | --------------------------------- |
+| `/catchrobo/motor_fb`        | `Float32MultiArray` | 角度×6 + RPM×2                    |
+| `/catchrobo/can_status`      | `String` (JSON)     | CAN接続状態・モジュール状態・統計 |
+| `/catchrobo/serial_status`   | `String` (JSON)     | シリアル接続状態・統計            |
+| `/catchrobo/available_ports` | `String` (JSON)     | 利用可能ポート一覧                |
 
 ### `module_cmd` JSON フォーマット
 
@@ -119,14 +119,14 @@ NUCが起動していれば `/catchrobo/available_ports` トピックが自動�
 
 ### ブラウザ → サーバー
 
-| `cmd` フィールド | 内容 |
-|---|---|
-| `motor_cmd` | `{"cmd":"motor_cmd","targets":[0,0,0,0,0]}` |
-| `motor_mode` | `{"cmd":"motor_mode","mode":1}` |
-| `module_cmd` | `{"cmd":"module_cmd","payload":{...}}` |
-| `set_ports` | `{"cmd":"set_ports","can_port":"...","serial_port":"..."}` |
-| `ext_ctrl_mode` | `{"cmd":"ext_ctrl_mode","enabled":true}` |
-| `ext_ctrl_get_status` | `{"cmd":"ext_ctrl_get_status"}` |
+| `cmd` フィールド      | 内容                                                       |
+| --------------------- | ---------------------------------------------------------- |
+| `motor_cmd`           | `{"cmd":"motor_cmd","targets":[0,0,0,0,0]}`                |
+| `motor_mode`          | `{"cmd":"motor_mode","mode":1}`                            |
+| `module_cmd`          | `{"cmd":"module_cmd","payload":{...}}`                     |
+| `set_ports`           | `{"cmd":"set_ports","can_port":"...","serial_port":"..."}` |
+| `ext_ctrl_mode`       | `{"cmd":"ext_ctrl_mode","enabled":true}`                   |
+| `ext_ctrl_get_status` | `{"cmd":"ext_ctrl_get_status"}`                            |
 
 ### 外部シリアル中継トピック (`/catchrobo/external_mdd_status`)
 
@@ -148,26 +148,26 @@ NUCが起動していれば `/catchrobo/available_ports` トピックが自動�
 
 ### サーバー → ブラウザ
 
-| `type` フィールド | 内容 |
-|---|---|
-| `can_status` | CAN接続状態・モジュール状態 |
-| `serial_status` | シリアル接続状態・フィードバック |
-| `motor_fb` | モーターフィードバック値 |
-| `available_ports` | 利用可能なシリアルポート一覧 |
+| `type` フィールド     | 内容                                                         |
+| --------------------- | ------------------------------------------------------------ |
+| `can_status`          | CAN接続状態・モジュール状態                                  |
+| `serial_status`       | シリアル接続状態・フィードバック                             |
+| `motor_fb`            | モーターフィードバック値                                     |
+| `available_ports`     | 利用可能なシリアルポート一覧                                 |
 | `external_controller` | 外部コントローラ状態 (enabled/online/port/mdd1_deg/mdd1_lsw) |
 
 ---
 
 ## 環境要件
 
-| 項目 | バージョン/内容 |
-|---|---|
-| OS | Ubuntu 22.04 (またはWindows WSL2) |
-| ROS2 | Humble Hawksbill |
-| Python | 3.10 |
-| fastapi | `pip3 install fastapi` |
-| uvicorn | `pip3 install uvicorn` |
-| pyserial | `pip3 install pyserial` |
+| 項目     | バージョン/内容                   |
+| -------- | --------------------------------- |
+| OS       | Ubuntu 22.04 (またはWindows WSL2) |
+| ROS2     | Humble Hawksbill                  |
+| Python   | 3.10                              |
+| fastapi  | `pip3 install fastapi`            |
+| uvicorn  | `pip3 install uvicorn`            |
+| pyserial | `pip3 install pyserial`           |
 
 **まとめてインストール:**
 ```bash

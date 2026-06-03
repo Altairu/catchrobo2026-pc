@@ -13,10 +13,10 @@ const state = {
   ws: null,
   wsConnected: false,
 
-  // モーター目標値 [RM1, RM2, LM1, LM2, SM1] (degree)
-  motorTargets: [0.0, 0.0, 0.0, 0.0, 0.0],
+  // モーター目標値 [RM1, RM2, LM1, LM2, SM1, LM3] (degree)
+  motorTargets: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
   motorMode: 0,           // 0=停止 1=PID 2=開ループ
-  motorFb: Array(7).fill(0.0),  // [ang×5, rpm×2]
+  motorFb: Array(8).fill(0.0),  // [ang×6, rpm×2]
 
   // モーター設定
   motorConfig: [
@@ -25,6 +25,7 @@ const state = {
     { name: 'LM1', min: -20.0, max: 30.0 },
     { name: 'LM2', min: -10.0, max: 20.0 },
     { name: 'SM1', min: -90.0, max: 90.0 },
+    { name: 'LM3', min: -10.0, max: 20.0 },
   ],
 
   // MDD1 状態
@@ -36,10 +37,10 @@ const state = {
       { target: 0, mode: 0, p: 10, i: 0, d: 0, wheel: 65, dir: 1 },
     ],
     appMode: 0,
-    sw: [0,0,0,0],
+    sw: [0, 0, 0, 0],
     err: 0,
-    enc_deg: [0,0,0,0],
-    enc_rps: [0,0,0,0],
+    enc_deg: [0, 0, 0, 0],
+    enc_rps: [0, 0, 0, 0],
   },
 
   // SV_1 / SV_2 バルブ状態
@@ -195,17 +196,17 @@ function updateCanStatusUI(data) {
   const modules = data.modules || {};
   const mdd = modules.MDD1 || {};
   if (Object.keys(mdd).length) {
-    state.mdd1.appMode  = mdd.app_mode || 0;
-    state.mdd1.sw       = mdd.sw || [0,0,0,0];
-    state.mdd1.err      = mdd.err || 0;
-    state.mdd1.enc_deg  = mdd.enc_deg || [0,0,0,0];
-    state.mdd1.enc_rps  = mdd.enc_rps || [0,0,0,0];
+    state.mdd1.appMode = mdd.app_mode || 0;
+    state.mdd1.sw = mdd.sw || [0, 0, 0, 0];
+    state.mdd1.err = mdd.err || 0;
+    state.mdd1.enc_deg = mdd.enc_deg || [0, 0, 0, 0];
+    state.mdd1.enc_rps = mdd.enc_rps || [0, 0, 0, 0];
     renderMdd1Status();
   }
 
   // 統計
-  setEl('stat-can-tx',  data.tx_count ?? '-');
-  setEl('stat-can-rx',  data.rx_count ?? '-');
+  setEl('stat-can-tx', data.tx_count ?? '-');
+  setEl('stat-can-rx', data.rx_count ?? '-');
   setEl('stat-can-err', data.error_count ?? '-');
 }
 
@@ -215,20 +216,20 @@ function updateSerialStatusUI(data) {
     badge.className = 'conn-badge ' + (data.connected ? 'online' : 'offline');
     badge.textContent = data.connected ? `Ser: ${data.port || 'Online'}` : 'Ser: Offline';
   }
-  setEl('stat-serial-tx',  data.tx_count ?? '-');
-  setEl('stat-serial-rx',  data.rx_count ?? '-');
+  setEl('stat-serial-tx', data.tx_count ?? '-');
+  setEl('stat-serial-rx', data.rx_count ?? '-');
   setEl('stat-serial-err', data.error_count ?? '-');
-  setEl('stat-ctrl-mode',  ['STOP','PID','OpenLoop'][data.control_mode ?? 0]);
+  setEl('stat-ctrl-mode', ['STOP', 'PID', 'OpenLoop'][data.control_mode ?? 0]);
 }
 
 // ─────────────────────────────────────────────────────────
 // モーターフィードバック UI 更新
 // ─────────────────────────────────────────────────────────
 function updateMotorFbUI(fb) {
-  const names = ['RM1','RM2','LM1','LM2','SM1'];
+  const names = ['RM1', 'RM2', 'LM1', 'LM2', 'SM1', 'LM3'];
   names.forEach((name, i) => {
     const ang = fb[i] ?? 0;
-    const rpm = i < 2 ? (fb[5+i] ?? 0) : null;
+    const rpm = i < 2 ? (fb[6 + i] ?? 0) : null;
     setEl(`fb-ang-${name}`, `${ang >= 0 ? '+' : ''}${ang.toFixed(1)}°`);
     if (rpm !== null) setEl(`fb-rpm-${name}`, `${rpm > 0 ? '+' : ''}${rpm} rpm`);
   });
@@ -239,7 +240,7 @@ function updateMotorFbUI(fb) {
 // ─────────────────────────────────────────────────────────
 function updatePortSelectors() {
   const ports = state.availablePorts;
-  ['sel-can-port','sel-serial-port'].forEach(id => {
+  ['sel-can-port', 'sel-serial-port'].forEach(id => {
     const sel = document.getElementById(id);
     if (!sel) return;
     const cur = sel.value;
@@ -262,7 +263,7 @@ function setMotorTarget(idx, val) {
   // スライダーと数値入力を同期
   const sl = document.getElementById(`motor-slider-${idx}`);
   const num = document.getElementById(`motor-num-${idx}`);
-  if (sl)  sl.value  = val;
+  if (sl) sl.value = val;
   if (num) num.value = val;
   sendWs({ cmd: 'motor_cmd', targets: [...state.motorTargets] });
 }
@@ -273,14 +274,14 @@ function resetMotor(idx) {
 
 function resetAllMotors() {
   state.motorTargets.fill(0);
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 6; i++) {
     const sl = document.getElementById(`motor-slider-${i}`);
     const num = document.getElementById(`motor-num-${i}`);
-    if (sl)  sl.value  = 0;
+    if (sl) sl.value = 0;
     if (num) num.value = 0;
     setEl(`motor-val-${i}`, '0.0');
   }
-  sendWs({ cmd: 'motor_cmd', targets: [0,0,0,0,0] });
+  sendWs({ cmd: 'motor_cmd', targets: [0, 0, 0, 0, 0, 0] });
 }
 
 function setMotorMode(mode) {
@@ -289,7 +290,7 @@ function setMotorMode(mode) {
     el.classList.toggle('active', i === mode);
   });
   sendWs({ cmd: 'motor_mode', mode });
-  addLog(`モーターモード → ${['停止','PID','開ループ'][mode]}`, 'info');
+  addLog(`モーターモード → ${['停止', 'PID', '開ループ'][mode]}`, 'info');
 }
 
 // ─────────────────────────────────────────────────────────
@@ -320,8 +321,10 @@ function updateMddParam(idx, key, val) {
   state.mdd1.motors[idx][key] = parseFloat(val);
   sendWs({
     cmd: 'module_cmd',
-    payload: { type: 'mdd', name: 'MDD1', action: 'set_params',
-               motor_idx: idx, ...state.mdd1.motors[idx] },
+    payload: {
+      type: 'mdd', name: 'MDD1', action: 'set_params',
+      motor_idx: idx, ...state.mdd1.motors[idx]
+    },
   });
 }
 
@@ -366,13 +369,13 @@ function renderValves(svName, bits) {
 // ポート設定送信
 // ─────────────────────────────────────────────────────────
 function applyPorts() {
-  const canPort    = document.getElementById('sel-can-port')?.value    || '';
+  const canPort = document.getElementById('sel-can-port')?.value || '';
   const serialPort = document.getElementById('sel-serial-port')?.value || '';
   if (!canPort && !serialPort) {
     addLog('ポートが選択されていません', 'warn');
     return;
   }
-  state.canPort    = canPort;
+  state.canPort = canPort;
   state.serialPort = serialPort;
   sendWs({ cmd: 'set_ports', can_port: canPort, serial_port: serialPort });
   addLog(`ポート設定送信: CAN=${canPort}  Serial=${serialPort}`, 'info');
@@ -390,7 +393,7 @@ function addLog(msg, type = 'info') {
   const box = document.getElementById('log-box');
   if (!box) return;
   const now = new Date();
-  const ts  = now.toTimeString().slice(0, 12);
+  const ts = now.toTimeString().slice(0, 12);
   const line = document.createElement('div');
   line.className = `log-line ${type}`;
   line.textContent = `[${ts}] ${msg}`;
