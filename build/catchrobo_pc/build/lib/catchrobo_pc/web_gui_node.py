@@ -62,7 +62,7 @@ class WebGuiNode(Node):
         self._external_stop_event = threading.Event()
         self._external_last_warn_ts = 0.0
         self._external_no_data_err_count = 0
-        self._motor_targets_cache = [0.0] * 5
+        self._motor_targets_cache = [0.0] * 6
         self._sv2_valves_cache = 0
 
         # ─── ROS2 パブリッシャー ──────────────────────
@@ -127,10 +127,10 @@ class WebGuiNode(Node):
             cmd = data.get('cmd', '')
 
             if cmd == 'motor_cmd':
-                # ロボマスモーター目標値 (5軸 degree値)
-                targets = data.get('targets', [0.0] * 5)
+                # ロボマスモーター目標値 (6軸 degree値)
+                targets = data.get('targets', [0.0] * 6)
                 msg = Float32MultiArray()
-                msg.data = [float(t) for t in targets[:5]]
+                msg.data = [float(t) for t in targets[:6]]
                 self.pub_motor_cmd.publish(msg)
 
             elif cmd == 'motor_mode':
@@ -165,7 +165,7 @@ class WebGuiNode(Node):
                 self._publish_external_status()
 
             if cmd == 'motor_cmd':
-                self._motor_targets_cache = [float(t) for t in targets[:5]]
+                self._motor_targets_cache = [float(t) for t in targets[:6]]
 
             if cmd == 'module_cmd':
                 payload = data.get('payload', {})
@@ -362,17 +362,17 @@ class WebGuiNode(Node):
         self._motor_targets_cache = targets
 
         motor_msg = Float32MultiArray()
-        motor_msg.data = targets[:5]
+        motor_msg.data = targets[:6]
         self.pub_motor_cmd.publish(motor_msg)
 
-        # M3 が 45deg 超なら SV_2 の V1(bit0) を ON
+        # M3 が 45deg 超なら SV_2 の V6(bit5) を ON
         want_on = float(deg[2]) > 45.0
-        current_on = (self._sv2_valves_cache & 0x01) != 0
+        current_on = (self._sv2_valves_cache & 0x20) != 0
         if want_on != current_on:
             if want_on:
-                self._sv2_valves_cache |= 0x01
+                self._sv2_valves_cache |= 0x20
             else:
-                self._sv2_valves_cache &= ~0x01
+                self._sv2_valves_cache &= ~0x20
 
             module_msg = String()
             module_msg.data = json.dumps({
