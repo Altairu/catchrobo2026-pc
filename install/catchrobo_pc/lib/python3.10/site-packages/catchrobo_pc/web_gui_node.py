@@ -142,7 +142,9 @@ class WebGuiNode(Node):
             elif cmd == 'module_cmd':
                 # モジュール操作コマンド (MDD/Solenoid)
                 msg = String()
-                msg.data = json.dumps(data.get('payload', {}))
+                payload = data.get('payload', {})
+                msg.data = json.dumps(payload)
+                self.get_logger().info(f'WS module_cmd 受信: payload={payload}')
                 self.pub_module_cmd.publish(msg)
 
             elif cmd == 'set_ports':
