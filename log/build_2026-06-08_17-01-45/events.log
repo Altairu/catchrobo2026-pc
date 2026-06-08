@@ -1,0 +1,57 @@
+[0.000000] (-) TimerEvent: {}
+[0.000698] (catchrobo_pc) JobQueued: {'identifier': 'catchrobo_pc', 'dependencies': OrderedDict()}
+[0.000724] (catchrobo_pc) JobStarted: {'identifier': 'catchrobo_pc'}
+[0.099742] (-) TimerEvent: {}
+[0.199995] (-) TimerEvent: {}
+[0.300373] (-) TimerEvent: {}
+[0.400841] (-) TimerEvent: {}
+[0.501176] (-) TimerEvent: {}
+[0.601529] (-) TimerEvent: {}
+[0.701896] (-) TimerEvent: {}
+[0.802232] (-) TimerEvent: {}
+[0.902546] (-) TimerEvent: {}
+[1.002911] (-) TimerEvent: {}
+[1.092876] (catchrobo_pc) Command: {'cmd': ['/usr/bin/python3', '-W', 'ignore:setup.py install is deprecated', '-W', 'ignore:easy_install command is deprecated', 'setup.py', 'egg_info', '--egg-base', '../../build/catchrobo_pc', 'build', '--build-base', '/home/altair/catchrobo2026-pc/build/catchrobo_pc/build', 'install', '--record', '/home/altair/catchrobo2026-pc/build/catchrobo_pc/install.log', '--single-version-externally-managed', 'install_data'], 'cwd': '/home/altair/catchrobo2026-pc/src/catchrobo_pc', 'env': {'GJS_DEBUG_TOPICS': 'JS ERROR;JS LOG', 'VSCODE_CWD': '/home/altair', 'LANGUAGE': 'ja_JP', 'USER': 'altair', 'ANTIGRAVITY_SOURCE_METADATA': '{"tool":{"conversationId":"ea0c25e8-e213-4b5c-bf3e-2fbc1467efc6","stepIndex":184,"toolCall":{"id":"0bnkjsq0","name":"run_command","argumentsJson":"{\\"CommandLine\\":\\"bash -c \\\\\\"source /opt/ros/humble/setup.bash \\\\u0026\\\\u0026 colcon build --packages-select catchrobo_pc\\\\\\"\\",\\"Cwd\\":\\"/home/altair/catchrobo2026-pc\\",\\"WaitMsBeforeAsync\\":5000,\\"toolAction\\":\\"PC側ROS2パッケージの再ビルド\\",\\"toolSummary\\":\\"PC側ROS2パッケージの再ビルド\\"}","thinkingSignature":"EroBCrcBAQw51sdgebvBIEVlS+Ak0PRpgCtRV6fsv/MHHDHpr3GlZFEQ+ZnYjNmVM5A/PMyIIkyDXRQWtUOucG9uBvZII2Y69Oyx1UnmqMoroePu0cu1PqrRaBjxWmarRxvfyK6rnslSOBxCmfcLt8Q647MS2KwHvpSGP+HaKEzwCEnKWZsHRMliNcnuUdfKa8YeYSt0WFwAyR4Nvk5s8rez3gtJq2aQti9IwDCNX0djTsC831wVDREAIVwa","originalName":"run_command"}}}', 'VSCODE_NLS_CONFIG': '{"userLocale":"ja","osLocale":"ja-jp","resolvedLanguage":"en","defaultMessagesFile":"/usr/share/antigravity-ide/resources/app/out/nls.messages.json","locale":"ja","availableLanguages":{}}', 'XDG_SESSION_TYPE': 'x11', 'SHLVL': '0', 'LD_LIBRARY_PATH': '/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib', 'HOME': '/home/altair', 'CHROME_DESKTOP': 'antigravity-ide.desktop', 'DESKTOP_SESSION': 'ubuntu', 'VSCODE_IPC_HOOK': '/run/user/1000/vscode-f3071572-1.10-main.sock', 'GIO_LAUNCHED_DESKTOP_FILE': '/usr/share/applications/antigravity-ide.desktop', 'ROS_PYTHON_VERSION': '3', 'GNOME_SHELL_SESSION_MODE': 'ubuntu', 'GTK_MODULES': 'gail:atk-bridge', 'XDG_SEAT_PATH': '/org/freedesktop/DisplayManager/Seat0', 'PAGER': 'cat', 'MANAGERPID': '991', 'SYSTEMD_EXEC_PID': '47629', 'DBUS_SESSION_BUS_ADDRESS': 'unix:path=/run/user/1000/bus', 'ANTIGRAVITY_AGENT': '1', 'GIO_LAUNCHED_DESKTOP_FILE_PID': '48569', 'IM_CONFIG_PHASE': '1', 'ROS_DISTRO': 'humble', 'GTK_IM_MODULE': 'ibus', 'LOGNAME': 'altair', 'JOURNAL_STREAM': '8:90145', '_': '/usr/bin/colcon', 'ROS_VERSION': '2', 'XDG_SESSION_CLASS': 'user', 'TERM': 'dumb', 'GNOME_DESKTOP_SESSION_ID': 'this-is-deprecated', 'FC_FONTATIONS': '1', 'ROS_LOCALHOST_ONLY': '0', 'ANTIGRAVITY_EDITOR_APP_ROOT': '/usr/share/antigravity-ide/resources/app', 'PATH': '/opt/ros/humble/bin:/home/altair/.gemini/antigravity-ide/bin:/home/altair/.local/bin:/home/altair/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin', 'SESSION_MANAGER': 'local/altair-HCAR5000-MI:@/tmp/.ICE-unix/47599,unix/altair-HCAR5000-MI:/tmp/.ICE-unix/47599', 'GDM_LANG': 'ja_JP', 'INVOCATION_ID': '36bd888d569a432ba6466619b8c3a192', 'XDG_SESSION_PATH': '/org/freedesktop/DisplayManager/Session0', 'XDG_MENU_PREFIX': 'gnome-', 'XDG_RUNTIME_DIR': '/run/user/1000', 'GDK_BACKEND': 'x11', 'DISPLAY': ':0', 'LANG': 'ja_JP.UTF-8', 'XDG_CURRENT_DESKTOP': 'ubuntu:GNOME', 'XMODIFIERS': '@im=ibus', 'XDG_SESSION_DESKTOP': 'ubuntu', 'XAUTHORITY': '/home/altair/.Xauthority', 'SSH_AGENT_LAUNCHER': 'gnome-keyring', 'SSH_AUTH_SOCK': '/run/user/1000/keyring/ssh', 'XDG_GREETER_DATA_DIR': '/var/lib/lightdm-data/altair', 'AMENT_PREFIX_PATH': '/opt/ros/humble', 'SHELL': '/bin/bash', 'ANTIGRAVITY_LS_ADDRESS': 'localhost:36959', 'QT_ACCESSIBILITY': '1', 'GDMSESSION': 'ubuntu', 'GPG_AGENT_INFO': '/run/user/1000/gnupg/S.gpg-agent:0:1', 'GJS_DEBUG_OUTPUT': 'stderr', 'QT_IM_MODULE': 'ibus', 'ANTIGRAVITY_TRAJECTORY_ID': '2cc81376-6774-4a5e-9428-daa2d5907682', 'PWD': '/home/altair/catchrobo2026-pc/build/catchrobo_pc', 'VSCODE_CLI': '1', 'LC_ALL': 'ja_JP.UTF-8', 'XDG_CONFIG_DIRS': '/etc/xdg/xdg-ubuntu:/etc/xdg', 'VSCODE_CODE_CACHE_PATH': '/home/altair/.config/Antigravity IDE/CachedData/4e2e10a9285aefbdcb898ae5e50dde45e9c7f505', 'XDG_DATA_DIRS': '/usr/share/ubuntu:/usr/share/gnome:/usr/local/share:/usr/share:/var/lib/snapd/desktop', 'PYTHONPATH': '/home/altair/catchrobo2026-pc/build/catchrobo_pc/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages:/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages', 'COLCON': '1', 'ANTIGRAVITY_CSRF_TOKEN': '1e118cc3-7d73-4d37-bb89-57113794d1c9', 'ELECTRON_NO_ATTACH_CONSOLE': '1', 'VSCODE_PID': '48588'}, 'shell': False}
+[1.103151] (-) TimerEvent: {}
+[1.203553] (-) TimerEvent: {}
+[1.239309] (catchrobo_pc) StderrLine: {'line': b"/home/altair/.local/lib/python3.10/site-packages/setuptools/_distutils/dist.py:261: UserWarning: Unknown distribution option: 'tests_require'\n"}
+[1.239578] (catchrobo_pc) StderrLine: {'line': b'  warnings.warn(msg)\n'}
+[1.303703] (-) TimerEvent: {}
+[1.404152] (-) TimerEvent: {}
+[1.450992] (catchrobo_pc) StdoutLine: {'line': b'running egg_info\n'}
+[1.470517] (catchrobo_pc) StdoutLine: {'line': b'writing ../../build/catchrobo_pc/catchrobo_pc.egg-info/PKG-INFO\n'}
+[1.470971] (catchrobo_pc) StdoutLine: {'line': b'writing dependency_links to ../../build/catchrobo_pc/catchrobo_pc.egg-info/dependency_links.txt\n'}
+[1.471383] (catchrobo_pc) StdoutLine: {'line': b'writing entry points to ../../build/catchrobo_pc/catchrobo_pc.egg-info/entry_points.txt\n'}
+[1.471505] (catchrobo_pc) StdoutLine: {'line': b'writing requirements to ../../build/catchrobo_pc/catchrobo_pc.egg-info/requires.txt\n'}
+[1.471603] (catchrobo_pc) StdoutLine: {'line': b'writing top-level names to ../../build/catchrobo_pc/catchrobo_pc.egg-info/top_level.txt\n'}
+[1.504248] (-) TimerEvent: {}
+[1.511359] (catchrobo_pc) StdoutLine: {'line': b"reading manifest file '../../build/catchrobo_pc/catchrobo_pc.egg-info/SOURCES.txt'\n"}
+[1.512488] (catchrobo_pc) StdoutLine: {'line': b"writing manifest file '../../build/catchrobo_pc/catchrobo_pc.egg-info/SOURCES.txt'\n"}
+[1.512909] (catchrobo_pc) StdoutLine: {'line': b'running build\n'}
+[1.513112] (catchrobo_pc) StdoutLine: {'line': b'running build_py\n'}
+[1.513242] (catchrobo_pc) StdoutLine: {'line': b'copying catchrobo_pc/web_gui_node.py -> /home/altair/catchrobo2026-pc/build/catchrobo_pc/build/lib/catchrobo_pc\n'}
+[1.513348] (catchrobo_pc) StdoutLine: {'line': b'copying catchrobo_pc/debug_node.py -> /home/altair/catchrobo2026-pc/build/catchrobo_pc/build/lib/catchrobo_pc\n'}
+[1.513454] (catchrobo_pc) StdoutLine: {'line': b'copying catchrobo_pc/__init__.py -> /home/altair/catchrobo2026-pc/build/catchrobo_pc/build/lib/catchrobo_pc\n'}
+[1.513576] (catchrobo_pc) StdoutLine: {'line': b'running install\n'}
+[1.517480] (catchrobo_pc) StdoutLine: {'line': b'running install_lib\n'}
+[1.537271] (catchrobo_pc) StdoutLine: {'line': b'copying /home/altair/catchrobo2026-pc/build/catchrobo_pc/build/lib/catchrobo_pc/web_gui_node.py -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages/catchrobo_pc\n'}
+[1.537767] (catchrobo_pc) StdoutLine: {'line': b'byte-compiling /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages/catchrobo_pc/web_gui_node.py to web_gui_node.cpython-310.pyc\n'}
+[1.540555] (catchrobo_pc) StdoutLine: {'line': b'running install_data\n'}
+[1.540859] (catchrobo_pc) StdoutLine: {'line': b'copying resource/catchrobo_pc -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/share/ament_index/resource_index/packages\n'}
+[1.541055] (catchrobo_pc) StdoutLine: {'line': b'copying package.xml -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/share/catchrobo_pc\n'}
+[1.541269] (catchrobo_pc) StdoutLine: {'line': b'copying launch/pc.launch.py -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/share/catchrobo_pc/launch\n'}
+[1.541450] (catchrobo_pc) StdoutLine: {'line': b'copying catchrobo_pc/static/css/style.css -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc/static/css\n'}
+[1.541611] (catchrobo_pc) StdoutLine: {'line': b'copying catchrobo_pc/static/js/app.js -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc/static/js\n'}
+[1.541732] (catchrobo_pc) StdoutLine: {'line': b'copying catchrobo_pc/static/index.html -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc/static\n'}
+[1.541888] (catchrobo_pc) StdoutLine: {'line': b'running install_egg_info\n'}
+[1.562469] (catchrobo_pc) StdoutLine: {'line': b"removing '/home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages/catchrobo_pc-0.1.0-py3.10.egg-info' (and everything under it)\n"}
+[1.562853] (catchrobo_pc) StdoutLine: {'line': b'Copying ../../build/catchrobo_pc/catchrobo_pc.egg-info to /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages/catchrobo_pc-0.1.0-py3.10.egg-info\n'}
+[1.563552] (catchrobo_pc) StdoutLine: {'line': b'running install_scripts\n'}
+[1.604410] (-) TimerEvent: {}
+[1.704902] (-) TimerEvent: {}
+[1.718899] (catchrobo_pc) StdoutLine: {'line': b'Installing debug_node script to /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc\n'}
+[1.719253] (catchrobo_pc) StdoutLine: {'line': b'Installing web_gui_node script to /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc\n'}
+[1.719492] (catchrobo_pc) StdoutLine: {'line': b"writing list of installed files to '/home/altair/catchrobo2026-pc/build/catchrobo_pc/install.log'\n"}
+[1.792878] (catchrobo_pc) CommandEnded: {'returncode': 0}
+[1.802653] (catchrobo_pc) JobEnded: {'identifier': 'catchrobo_pc', 'rc': 0}
+[1.803506] (-) EventReactorShutdown: {}

@@ -131,12 +131,14 @@ class WebGuiNode(Node):
                 targets = data.get('targets', [0.0] * 6)
                 msg = Float32MultiArray()
                 msg.data = [float(t) for t in targets[:6]]
+                self.get_logger().info(f'WS motor_cmd 受信: targets={msg.data}')
                 self.pub_motor_cmd.publish(msg)
 
             elif cmd == 'motor_mode':
                 # 制御モード切り替え
                 msg = String()
                 msg.data = json.dumps({'mode': int(data.get('mode', 0))})
+                self.get_logger().info(f'WS motor_mode 受信: mode={msg.data}')
                 self.pub_motor_mode.publish(msg)
 
             elif cmd == 'module_cmd':
