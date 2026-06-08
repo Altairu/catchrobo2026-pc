@@ -47,6 +47,9 @@ const state = {
   sv1Valves: 0,
   sv2Valves: 0,
 
+  // Servo1 状態
+  servo1Ch: [90, 90, 90, 90, 90, 90],
+
   // ポート情報
   availablePorts: [],
   canPort: '',
@@ -202,6 +205,13 @@ function updateCanStatusUI(data) {
     state.mdd1.enc_deg = mdd.enc_deg || [0, 0, 0, 0];
     state.mdd1.enc_rps = mdd.enc_rps || [0, 0, 0, 0];
     renderMdd1Status();
+  }
+
+  // Servo1 状態
+  const servo = modules.Servo1 || {};
+  if (Object.keys(servo).length) {
+    state.servo1Ch = servo.ch || [90, 90, 90, 90, 90, 90];
+    renderServo1Status();
   }
 
   // 統計
@@ -362,6 +372,50 @@ function renderValves(svName, bits) {
     el.classList.toggle('active', !!on);
     const st = el.querySelector('.v-st');
     if (st) st.textContent = on ? 'ON' : 'OFF';
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// Servo 制御
+// ─────────────────────────────────────────────────────────
+function setServoTarget(idx, val) {
+  val = parseInt(val);
+  state.servo1Ch[idx] = val;
+  // スライダーと数値入力を同期
+  const sl = document.getElementById(`servo-slider-${idx}`);
+  const num = document.getElementById(`servo-num-${idx}`);
+  if (sl) sl.value = val;
+  if (num) num.value = val;
+  sendWs({
+    cmd: 'module_cmd',
+    payload: { type: 'servo', name: 'Servo1', action: 'set_target', targets: [...state.servo1Ch] }
+  });
+}
+
+function resetServoSingle(idx) {
+  setServoTarget(idx, 90);
+}
+
+function resetServo1() {
+  state.servo1Ch.fill(90);
+  for (let i = 0; i < 6; i++) {
+    const sl = document.getElementById(`servo-slider-${i}`);
+    const num = document.getElementById(`servo-num-${i}`);
+    if (sl) sl.value = 90;
+    if (num) num.value = 90;
+  }
+  sendWs({
+    cmd: 'module_cmd',
+    payload: { type: 'servo', name: 'Servo1', action: 'set_target', targets: [90, 90, 90, 90, 90, 90] }
+  });
+}
+
+function renderServo1Status() {
+  for (let i = 0; i < 6; i++) {
+    const sl = document.getElementById(`servo-slider-${i}`);
+    const num = document.getElementById(`servo-num-${i}`);
+    if (sl && document.activeElement !== sl) sl.value = state.servo1Ch[i];
+    if (num && document.activeElement !== num) num.value = state.servo1Ch[i];
   }
 }
 

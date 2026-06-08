@@ -258,6 +258,22 @@
             <!-- JSで生成 -->
           </div>
         </div>
+
+        <!-- Servo1 -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">
+              <span class="dot" style="background:var(--accent-servo)"></span>
+              Servo1 - Servo Motor (0x100)
+            </span>
+            <button class="btn btn-ghost btn-sm" onclick="resetServo1()">
+              <i class="fa-solid fa-rotate-left"></i> 全センター (90°)
+            </button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px" id="servo-grid-Servo1">
+            <!-- JSで生成 -->
+          </div>
+        </div>
       </section>
 
       <!-- ─── ロボマスモータービュー ─────────────────── -->
@@ -439,6 +455,28 @@
       </button>
     `).join('');
       });
+
+      // ── サーボUI生成 (Servo1) ───────────────
+      const servoGrid = document.getElementById('servo-grid-Servo1');
+      if (servoGrid) {
+        servoGrid.innerHTML = Array.from({ length: 6 }, (_, i) => `
+          <div class="slider-row">
+            <span class="slider-label">CH${i + 1}</span>
+            <input type="range"
+              id="servo-slider-${i}"
+              min="0" max="180" step="1" value="90"
+              oninput="setServoTarget(${i}, this.value)">
+            <div style="display:flex;gap:4px;align-items:center">
+              <input type="number"
+                id="servo-num-${i}"
+                min="0" max="180" step="1" value="90"
+                style="width:70px;font-family:'JetBrains Mono',monospace;font-size:13px"
+                oninput="setServoTarget(${i}, this.value)">
+              <button class="btn btn-ghost btn-sm" onclick="resetServoSingle(${i})" style="padding:4px 6px">90</button>
+            </div>
+          </div>
+        `).join('');
+      }
 
       // ── MDD PIDパラメータUI生成 ─────────────────────────
       const pidContainer = document.getElementById('mdd-params-container');
