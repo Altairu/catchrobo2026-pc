@@ -428,19 +428,26 @@
             <input type="range"
               id="motor-slider-${i}"
               min="${cfg.min}" max="${cfg.max}" step="0.5" value="0"
-              oninput="setMotorTarget(${i}, this.value)">
+              >
             <div style="display:flex;gap:4px;align-items:center">
               <input type="number"
                 id="motor-num-${i}"
                 min="${cfg.min}" max="${cfg.max}" step="0.5" value="0"
                 style="width:70px;font-family:'JetBrains Mono',monospace;font-size:13px"
-                oninput="setMotorTarget(${i}, this.value)">
+                >
               <button class="btn btn-ghost btn-sm" onclick="resetMotor(${i})" style="padding:4px 6px">↺</button>
             </div>
           </div>
         `).join('')}
       </div>
     `;
+
+        for (let i = 0; i < state.motorConfig.length; i++) {
+          const sl = document.getElementById(`motor-slider-${i}`);
+          const num = document.getElementById(`motor-num-${i}`);
+          sl?.addEventListener('input', () => setMotorTarget(i, sl.value));
+          num?.addEventListener('input', () => setMotorTarget(i, num.value));
+        }
       }
 
       // ── バルブグリッド生成 (SV_1 / SV_2) ───────────────
@@ -465,17 +472,24 @@
             <input type="range"
               id="servo-slider-${i}"
               min="0" max="180" step="1" value="90"
-              oninput="setServoTarget(${i}, this.value)">
+              >
             <div style="display:flex;gap:4px;align-items:center">
               <input type="number"
                 id="servo-num-${i}"
                 min="0" max="180" step="1" value="90"
                 style="width:70px;font-family:'JetBrains Mono',monospace;font-size:13px"
-                oninput="setServoTarget(${i}, this.value)">
+                >
               <button class="btn btn-ghost btn-sm" onclick="resetServoSingle(${i})" style="padding:4px 6px">90</button>
             </div>
           </div>
         `).join('');
+
+        for (let i = 0; i < 6; i++) {
+          const sl = document.getElementById(`servo-slider-${i}`);
+          const num = document.getElementById(`servo-num-${i}`);
+          sl?.addEventListener('input', () => setServoTarget(i, sl.value));
+          num?.addEventListener('input', () => setServoTarget(i, num.value));
+        }
       }
 
       // ── MDD PIDパラメータUI生成 ─────────────────────────

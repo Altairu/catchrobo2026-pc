@@ -1,3 +1,4 @@
 [console_scripts]
 debug_node = catchrobo_pc.debug_node:main
 web_gui_node = catchrobo_pc.web_gui_node:main
+
