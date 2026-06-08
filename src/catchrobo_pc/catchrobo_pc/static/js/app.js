@@ -207,13 +207,6 @@ function updateCanStatusUI(data) {
     renderMdd1Status();
   }
 
-  // Servo1 状態
-  const servo = modules.Servo1 || {};
-  if (Object.keys(servo).length) {
-    state.servo1Ch = servo.ch || [90, 90, 90, 90, 90, 90];
-    renderServo1Status();
-  }
-
   // 統計
   setEl('stat-can-tx', data.tx_count ?? '-');
   setEl('stat-can-rx', data.rx_count ?? '-');
@@ -411,12 +404,7 @@ function resetServo1() {
 }
 
 function renderServo1Status() {
-  for (let i = 0; i < 6; i++) {
-    const sl = document.getElementById(`servo-slider-${i}`);
-    const num = document.getElementById(`servo-num-${i}`);
-    if (sl && document.activeElement !== sl) sl.value = state.servo1Ch[i];
-    if (num && document.activeElement !== num) num.value = state.servo1Ch[i];
-  }
+  // 高頻度な同期による引き戻しバグを防ぐため、受信データによる自動同期は無効化しています。
 }
 
 // ─────────────────────────────────────────────────────────
