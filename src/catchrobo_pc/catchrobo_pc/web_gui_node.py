@@ -35,7 +35,7 @@ STATIC_DIR = Path(get_package_prefix('catchrobo_pc')) / 'lib' / 'catchrobo_pc' /
 
 # 外部コントローラ入力の安全範囲 (GUIスライダー範囲と同じ)
 RM1_MIN = -20.0
-RM1_MAX = 60.0
+RM1_MAX = 70.0
 RM2_MIN = -15.0
 RM2_MAX = 90.0
 
