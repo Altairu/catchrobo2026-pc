@@ -30,12 +30,16 @@ import serial.tools.list_ports
 
 from ament_index_python.packages import get_package_prefix
 
-# static ファイルのパス (インストール先 lib/catchrobo_pc/static/)
-STATIC_DIR = Path(get_package_prefix('catchrobo_pc')) / 'lib' / 'catchrobo_pc' / 'static'
+# static ファイルのパス (開発時は実体ディレクトリを優先、インストール先 lib/catchrobo_pc/static/ もフォールバック)
+_LOCAL_STATIC = Path(__file__).resolve().parent / 'static'
+if _LOCAL_STATIC.exists():
+    STATIC_DIR = _LOCAL_STATIC
+else:
+    STATIC_DIR = Path(get_package_prefix('catchrobo_pc')) / 'lib' / 'catchrobo_pc' / 'static'
 
 # 外部コントローラ入力の安全範囲 (GUIスライダー範囲と同じ)
 RM1_MIN = -20.0
-RM1_MAX = 60.0
+RM1_MAX = 70.0
 RM2_MIN = -15.0
 RM2_MAX = 90.0
 
@@ -64,6 +68,7 @@ class WebGuiNode(Node):
         self._external_no_data_err_count = 0
         self._motor_targets_cache = [0.0] * 6
         self._sv2_valves_cache = 0
+        self._servo1_targets_cache = [90] * 6
 
         # ─── ROS2 パブリッシャー ──────────────────────
         self.pub_motor_cmd  = self.create_publisher(Float32MultiArray, '/catchrobo/motor_cmd',  10)
@@ -172,6 +177,8 @@ class WebGuiNode(Node):
                 payload = data.get('payload', {})
                 if payload.get('type') == 'solenoid' and payload.get('name') == 'SV_2' and payload.get('action') == 'set_valves':
                     self._sv2_valves_cache = int(payload.get('valves', 0))
+                elif payload.get('type') == 'servo' and payload.get('name') == 'Servo1' and payload.get('action') == 'set_target':
+                    self._servo1_targets_cache = [int(v) for v in payload.get('targets', [90] * 6)[:6]]
 
         except Exception as e:
             self.get_logger().error(f'WS メッセージ処理エラー: {e}')
@@ -383,6 +390,26 @@ class WebGuiNode(Node):
                 'valves': int(self._sv2_valves_cache),
             })
             self.pub_module_cmd.publish(module_msg)
+
+        # M4 (deg[3]) -> Servo1 ch1 (targets[0])
+        # ギヤ比10:1による減速 (エンコーダが10倍加速して測定されているため10で割る)
+        # 0度のとき90度、0~180度にクランプ (181などの上限、下限の補正)
+        if len(deg) >= 4:
+            try:
+                servo1_target = int(round((float(deg[3]) / 10.0) + 90.0))
+                servo1_target = max(0, min(180, servo1_target))
+                if self._servo1_targets_cache[0] != servo1_target:
+                    self._servo1_targets_cache[0] = servo1_target
+                    servo_msg = String()
+                    servo_msg.data = json.dumps({
+                        'type': 'servo',
+                        'name': 'Servo1',
+                        'action': 'set_target',
+                        'targets': list(self._servo1_targets_cache)
+                    })
+                    self.pub_module_cmd.publish(servo_msg)
+            except (ValueError, TypeError) as e:
+                self.get_logger().error(f'サーボ目標値計算エラー: {e}')
 
         self._publish_external_status()
 

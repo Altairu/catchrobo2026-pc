@@ -174,7 +174,10 @@ function renderExternalControllerUI() {
     const d = s.mdd1_deg || [0, 0, 0, 0];
     const sw = s.mdd1_lsw || [0, 0, 0, 0];
     const swText = sw.map((v, i) => `SW${i + 1}:${v ? 'ON' : 'off'}`).join('  ');
-    map.textContent = `M1→RM2:${(+d[0] || 0).toFixed(1)}°  M2→RM1:${(+d[1] || 0).toFixed(1)}°  M3:${(+d[2] || 0).toFixed(1)}° (45°閾値でSV_2 V6)  ${swText}`;
+    // ギヤ比 10:1 を考慮してエンコーダ生値を 10 で割る
+    const m4 = (+d[3] || 0) / 10.0;
+    const servoTarget = Math.max(0, Math.min(180, Math.round(m4 + 90)));
+    map.textContent = `M1→RM2:${(+d[0] || 0).toFixed(1)}°  M2→RM1:${(+d[1] || 0).toFixed(1)}°  M3:${(+d[2] || 0).toFixed(1)}° (45°閾値でSV_2 V6)  M4:${m4.toFixed(1)}° (1/10減速後、＋90でServo1 CH1:${servoTarget}°)  ${swText}`;
   }
 
   if (btn) {

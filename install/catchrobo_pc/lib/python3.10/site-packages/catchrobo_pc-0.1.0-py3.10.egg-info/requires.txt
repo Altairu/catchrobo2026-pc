@@ -1,4 +1,4 @@
-setuptools
 fastapi
-uvicorn
 pyserial
+setuptools
+uvicorn

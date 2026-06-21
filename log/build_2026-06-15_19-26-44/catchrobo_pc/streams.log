@@ -1,0 +1,18 @@
+[0.765s] Invoking command in '/home/altair/catchrobo2026-pc/build/catchrobo_pc': PYTHONPATH=/home/altair/catchrobo2026-pc/build/catchrobo_pc/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/altair/catchrobo2026-pc/build/catchrobo_pc/build --no-deps symlink_data
+[1.086s] running develop
+[1.333s] running egg_info
+[1.333s] writing catchrobo_pc.egg-info/PKG-INFO
+[1.333s] writing dependency_links to catchrobo_pc.egg-info/dependency_links.txt
+[1.333s] writing entry points to catchrobo_pc.egg-info/entry_points.txt
+[1.333s] writing requirements to catchrobo_pc.egg-info/requires.txt
+[1.333s] writing top-level names to catchrobo_pc.egg-info/top_level.txt
+[1.335s] reading manifest file 'catchrobo_pc.egg-info/SOURCES.txt'
+[1.336s] writing manifest file 'catchrobo_pc.egg-info/SOURCES.txt'
+[1.338s] running build_ext
+[1.338s] Creating /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages/catchrobo-pc.egg-link (link to .)
+[1.339s] Installing debug_node script to /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc
+[1.339s] Installing web_gui_node script to /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc
+[1.339s] 
+[1.339s] Installed /home/altair/catchrobo2026-pc/build/catchrobo_pc
+[1.339s] running symlink_data
+[1.369s] Invoked command in '/home/altair/catchrobo2026-pc/build/catchrobo_pc' returned '0': PYTHONPATH=/home/altair/catchrobo2026-pc/build/catchrobo_pc/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/altair/catchrobo2026-pc/build/catchrobo_pc/build --no-deps symlink_data

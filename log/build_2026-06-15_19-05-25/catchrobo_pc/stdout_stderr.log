@@ -1,0 +1,22 @@
+running develop
+running egg_info
+writing catchrobo_pc.egg-info/PKG-INFO
+writing dependency_links to catchrobo_pc.egg-info/dependency_links.txt
+writing entry points to catchrobo_pc.egg-info/entry_points.txt
+writing requirements to catchrobo_pc.egg-info/requires.txt
+writing top-level names to catchrobo_pc.egg-info/top_level.txt
+reading manifest file 'catchrobo_pc.egg-info/SOURCES.txt'
+writing manifest file 'catchrobo_pc.egg-info/SOURCES.txt'
+running build_ext
+Creating /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages/catchrobo-pc.egg-link (link to .)
+Installing debug_node script to /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc
+Installing web_gui_node script to /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc
+
+Installed /home/altair/catchrobo2026-pc/build/catchrobo_pc
+running symlink_data
+symbolically linking /home/altair/catchrobo2026-pc/build/catchrobo_pc/resource/catchrobo_pc -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/share/ament_index/resource_index/packages
+symbolically linking /home/altair/catchrobo2026-pc/build/catchrobo_pc/package.xml -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/share/catchrobo_pc
+symbolically linking /home/altair/catchrobo2026-pc/build/catchrobo_pc/launch/pc.launch.py -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/share/catchrobo_pc/launch
+symbolically linking /home/altair/catchrobo2026-pc/build/catchrobo_pc/catchrobo_pc/static/css/style.css -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc/static/css
+symbolically linking /home/altair/catchrobo2026-pc/build/catchrobo_pc/catchrobo_pc/static/js/app.js -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc/static/js
+symbolically linking /home/altair/catchrobo2026-pc/build/catchrobo_pc/catchrobo_pc/static/index.html -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc/static
