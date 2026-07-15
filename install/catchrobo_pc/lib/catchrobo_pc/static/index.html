@@ -133,11 +133,83 @@
               外部コントローラ: OFF
             </button>
           </div>
-          <div style="display:flex;flex-direction:column;gap:6px;font-family:'JetBrains Mono',monospace;font-size:12px">
-            <div id="ext-ctrl-status" style="font-weight:700;color:var(--danger)">MODE: OFF / OFFLINE</div>
-            <div id="ext-ctrl-detail" style="color:var(--text-mono)">PORT: - age:999.00s pkt:0</div>
-            <div id="ext-ctrl-map" style="color:var(--text-dim)">
-              M1→RM2 / M2→RM1 / M3(45°閾値)→SV_2 V6 / M4(+90)→Servo1 ch1
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono',monospace;font-size:12px">
+              <div id="ext-ctrl-status" style="font-weight:700;color:var(--danger)">MODE: OFF / OFFLINE</div>
+              <div id="ext-ctrl-detail" style="color:var(--text-mono)">PORT: - age:999.00s pkt:0</div>
+            </div>
+            
+            <!-- MDD1 / MDD2 デバッグテーブル -->
+            <table class="ext-debug-table">
+              <thead>
+                <tr>
+                  <th>デバイス</th>
+                  <th>M1</th>
+                  <th>M2</th>
+                  <th>M3</th>
+                  <th>M4</th>
+                  <th>リミットスイッチ</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="font-weight:700;color:var(--accent-can)">MDD1 (0x01)</td>
+                  <td id="ext-mdd1-m1">+0.0°</td>
+                  <td id="ext-mdd1-m2">+0.0°</td>
+                  <td id="ext-mdd1-m3">+0.0°</td>
+                  <td id="ext-mdd1-m4">+0.0°</td>
+                  <td id="ext-mdd1-sw">
+                    <span class="sw-badge off" id="ext-mdd1-sw1">SW1</span>
+                    <span class="sw-badge off" id="ext-mdd1-sw2">SW2</span>
+                    <span class="sw-badge off" id="ext-mdd1-sw3">SW3</span>
+                    <span class="sw-badge off" id="ext-mdd1-sw4">SW4</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="font-weight:700;color:var(--accent-can)">MDD2 (0x02)</td>
+                  <td id="ext-mdd2-m1">+0.0°</td>
+                  <td id="ext-mdd2-m2">+0.0°</td>
+                  <td id="ext-mdd2-m3">+0.0°</td>
+                  <td id="ext-mdd2-m4">+0.0°</td>
+                  <td id="ext-mdd2-sw">
+                    <span class="sw-badge off" id="ext-mdd2-sw1">SW1</span>
+                    <span class="sw-badge off" id="ext-mdd2-sw2">SW2</span>
+                    <span class="sw-badge off" id="ext-mdd2-sw3">SW3</span>
+                    <span class="sw-badge off" id="ext-mdd2-sw4">SW4</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- マッピングガイド -->
+            <div style="font-size:11px;color:var(--text-dim);font-weight:700;margin-top:10px;margin-bottom:-6px">
+              ※ 以下は「MDD1 (0x01)」から実機への制御マッピングです（MDD2データは可視化のみ）
+            </div>
+            <div class="mapping-guide">
+              <div class="mapping-item">
+                <span class="mapping-key">MDD1 M1</span>
+                <span class="mapping-val">RM2 (右車輪)</span>
+              </div>
+              <div class="mapping-item">
+                <span class="mapping-key">MDD1 M2</span>
+                <span class="mapping-val">RM1 (左車輪)</span>
+              </div>
+              <div class="mapping-item">
+                <span class="mapping-key">MDD1 M3</span>
+                <span class="mapping-val">SV_2 V6 (>45°時 ON)</span>
+              </div>
+              <div class="mapping-item">
+                <span class="mapping-key">MDD1 M4</span>
+                <span class="mapping-val">Servo1 CH1 (+90°, 1/10減速)</span>
+              </div>
+              <div class="mapping-item">
+                <span class="mapping-key">MDD1 SW1</span>
+                <span class="mapping-val">SV_2 V1 ON</span>
+              </div>
+              <div class="mapping-item">
+                <span class="mapping-key">MDD1 SW2/3</span>
+                <span class="mapping-val">SM1 (電流±800)</span>
+              </div>
             </div>
           </div>
         </div>
@@ -163,19 +235,19 @@
           <div class="enc-row">
             <div class="enc-cell">
               <div class="enc-cell-label">M1</div>
-              <div class="enc-cell-value" id="mdd-enc-0">+0.0°</div>
+              <div class="enc-cell-value" id="mdd1-enc-0">+0.0°</div>
             </div>
             <div class="enc-cell">
               <div class="enc-cell-label">M2</div>
-              <div class="enc-cell-value" id="mdd-enc-1">+0.0°</div>
+              <div class="enc-cell-value" id="mdd1-enc-1">+0.0°</div>
             </div>
             <div class="enc-cell">
               <div class="enc-cell-label">M3</div>
-              <div class="enc-cell-value" id="mdd-enc-2">+0.0°</div>
+              <div class="enc-cell-value" id="mdd1-enc-2">+0.0°</div>
             </div>
             <div class="enc-cell">
               <div class="enc-cell-label">M4</div>
-              <div class="enc-cell-value" id="mdd-enc-3">+0.0°</div>
+              <div class="enc-cell-value" id="mdd1-enc-3">+0.0°</div>
             </div>
           </div>
 
@@ -184,30 +256,30 @@
             <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
               <div>
                 <label>M1 目標値</label>
-                <input type="number" id="mdd-target-0" value="0" min="-32767" max="32767"
+                <input type="number" id="mdd1-target-0" value="0" min="-32767" max="32767"
                   style="font-family:'JetBrains Mono',monospace">
               </div>
               <div>
                 <label>M2 目標値</label>
-                <input type="number" id="mdd-target-1" value="0" min="-32767" max="32767"
+                <input type="number" id="mdd1-target-1" value="0" min="-32767" max="32767"
                   style="font-family:'JetBrains Mono',monospace">
               </div>
               <div>
                 <label>M3 目標値</label>
-                <input type="number" id="mdd-target-2" value="0" min="-32767" max="32767"
+                <input type="number" id="mdd1-target-2" value="0" min="-32767" max="32767"
                   style="font-family:'JetBrains Mono',monospace">
               </div>
               <div>
                 <label>M4 目標値</label>
-                <input type="number" id="mdd-target-3" value="0" min="-32767" max="32767"
+                <input type="number" id="mdd1-target-3" value="0" min="-32767" max="32767"
                   style="font-family:'JetBrains Mono',monospace">
               </div>
             </div>
             <div style="display:flex;gap:8px">
-              <button class="btn btn-primary btn-sm" onclick="sendMddTarget()">
+              <button class="btn btn-primary btn-sm" onclick="sendMddTarget('MDD1')">
                 <i class="fa-solid fa-paper-plane"></i> 目標値送信
               </button>
-              <button class="btn btn-ghost btn-sm" onclick="sendMddParams()">
+              <button class="btn btn-ghost btn-sm" onclick="sendMddParams('MDD1')">
                 <i class="fa-solid fa-upload"></i> パラメータ送信
               </button>
             </div>
@@ -216,11 +288,90 @@
           <!-- PIDパラメータ (折りたたみ) -->
           <details style="margin-top:12px">
             <summary style="cursor:pointer;font-size:12px;color:var(--text-dim);font-weight:600">
-              ▶ PID パラメータ設定
+              ▶ PID パラメータ設定 (MDD1)
             </summary>
             <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px">
-              <!-- M1 ~ M4 PID -->
-              <div id="mdd-params-container" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+              <div id="mdd1-params-container" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+                <!-- JSで生成 -->
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <!-- MDD2 -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">
+              <span class="dot" style="background:var(--accent-can)"></span>
+              MDD2 - Motor Driver (0x201)
+            </span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span id="mdd2-mode-str" style="font-size:12px;font-weight:700;color:var(--text-dim)">PARAM MODE</span>
+              <span id="mdd2-sw" style="font-size:11px;color:var(--text-dim)">SW:[0,0,0,0] Err:0</span>
+            </div>
+          </div>
+
+          <!-- エンコーダ表示 -->
+          <div class="enc-row">
+            <div class="enc-cell">
+              <div class="enc-cell-label">M1</div>
+              <div class="enc-cell-value" id="mdd2-enc-0">+0.0°</div>
+            </div>
+            <div class="enc-cell">
+              <div class="enc-cell-label">M2</div>
+              <div class="enc-cell-value" id="mdd2-enc-1">+0.0°</div>
+            </div>
+            <div class="enc-cell">
+              <div class="enc-cell-label">M3</div>
+              <div class="enc-cell-value" id="mdd2-enc-2">+0.0°</div>
+            </div>
+            <div class="enc-cell">
+              <div class="enc-cell-label">M4</div>
+              <div class="enc-cell-value" id="mdd2-enc-3">+0.0°</div>
+            </div>
+          </div>
+
+          <!-- 目標値 -->
+          <div style="margin-top:14px">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+              <div>
+                <label>M1 目標値</label>
+                <input type="number" id="mdd2-target-0" value="0" min="-32767" max="32767"
+                  style="font-family:'JetBrains Mono',monospace">
+              </div>
+              <div>
+                <label>M2 目標値</label>
+                <input type="number" id="mdd2-target-1" value="0" min="-32767" max="32767"
+                  style="font-family:'JetBrains Mono',monospace">
+              </div>
+              <div>
+                <label>M3 目標値</label>
+                <input type="number" id="mdd2-target-2" value="0" min="-32767" max="32767"
+                  style="font-family:'JetBrains Mono',monospace">
+              </div>
+              <div>
+                <label>M4 目標値</label>
+                <input type="number" id="mdd2-target-3" value="0" min="-32767" max="32767"
+                  style="font-family:'JetBrains Mono',monospace">
+              </div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-primary btn-sm" onclick="sendMddTarget('MDD2')">
+                <i class="fa-solid fa-paper-plane"></i> 目標値送信
+              </button>
+              <button class="btn btn-ghost btn-sm" onclick="sendMddParams('MDD2')">
+                <i class="fa-solid fa-upload"></i> パラメータ送信
+              </button>
+            </div>
+          </div>
+
+          <!-- PIDパラメータ (折りたたみ) -->
+          <details style="margin-top:12px">
+            <summary style="cursor:pointer;font-size:12px;color:var(--text-dim);font-weight:600">
+              ▶ PID パラメータ設定 (MDD2)
+            </summary>
+            <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px">
+              <div id="mdd2-params-container" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
                 <!-- JSで生成 -->
               </div>
             </div>
@@ -493,49 +644,53 @@
       }
 
       // ── MDD PIDパラメータUI生成 ─────────────────────────
-      const pidContainer = document.getElementById('mdd-params-container');
-      if (pidContainer) {
-        pidContainer.innerHTML = Array.from({ length: 4 }, (_, i) => `
-      <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px">
-        <div style="font-size:12px;font-weight:700;color:var(--accent-can);margin-bottom:8px">M${i + 1}</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
-          <div><label>P Gain</label>
-            <input type="number" value="10" step="0.1"
-              onchange="updateMddParam(${i},'p',this.value)"
-              style="font-family:'JetBrains Mono',monospace">
-          </div>
-          <div><label>I Gain</label>
-            <input type="number" value="0" step="0.1"
-              onchange="updateMddParam(${i},'i',this.value)"
-              style="font-family:'JetBrains Mono',monospace">
-          </div>
-          <div><label>D Gain</label>
-            <input type="number" value="0" step="0.1"
-              onchange="updateMddParam(${i},'d',this.value)"
-              style="font-family:'JetBrains Mono',monospace">
-          </div>
-          <div><label>Mode</label>
-            <select onchange="updateMddParam(${i},'mode',this.value)">
-              <option value="0">Speed</option>
-              <option value="1">Angle</option>
-              <option value="2">Pos</option>
-            </select>
-          </div>
-          <div><label>Wheel(mm)</label>
-            <input type="number" value="65" step="1"
-              onchange="updateMddParam(${i},'wheel',this.value)"
-              style="font-family:'JetBrains Mono',monospace">
-          </div>
-          <div><label>Dir</label>
-            <select onchange="updateMddParam(${i},'dir',this.value)">
-              <option value="1">+ Norm</option>
-              <option value="-1">- Rev</option>
-            </select>
+      ['MDD1', 'MDD2'].forEach(name => {
+        const isMdd1 = (name === 'MDD1');
+        const containerId = isMdd1 ? 'mdd1-params-container' : 'mdd2-params-container';
+        const pidContainer = document.getElementById(containerId);
+        if (pidContainer) {
+          pidContainer.innerHTML = Array.from({ length: 4 }, (_, i) => `
+        <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px">
+          <div style="font-size:12px;font-weight:700;color:var(--accent-can);margin-bottom:8px">M${i + 1}</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+            <div><label>P Gain</label>
+              <input type="number" value="10" step="0.1"
+                onchange="updateMddParam('${name}',${i},'p',this.value)"
+                style="font-family:'JetBrains Mono',monospace">
+            </div>
+            <div><label>I Gain</label>
+              <input type="number" value="0" step="0.1"
+                onchange="updateMddParam('${name}',${i},'i',this.value)"
+                style="font-family:'JetBrains Mono',monospace">
+            </div>
+            <div><label>D Gain</label>
+              <input type="number" value="0" step="0.1"
+                onchange="updateMddParam('${name}',${i},'d',this.value)"
+                style="font-family:'JetBrains Mono',monospace">
+            </div>
+            <div><label>Mode</label>
+              <select onchange="updateMddParam('${name}',${i},'mode',this.value)">
+                <option value="0">Speed</option>
+                <option value="1">Angle</option>
+                <option value="2">Pos</option>
+              </select>
+            </div>
+            <div><label>Wheel(mm)</label>
+              <input type="number" value="65" step="1"
+                onchange="updateMddParam('${name}',${i},'wheel',this.value)"
+                style="font-family:'JetBrains Mono',monospace">
+            </div>
+            <div><label>Dir</label>
+              <select onchange="updateMddParam('${name}',${i},'dir',this.value)">
+                <option value="1">+ Norm</option>
+                <option value="-1">- Rev</option>
+              </select>
+            </div>
           </div>
         </div>
-      </div>
-    `).join('');
-      }
+      `).join('');
+        }
+      });
     });
 
     // SV全OFFヘルパー

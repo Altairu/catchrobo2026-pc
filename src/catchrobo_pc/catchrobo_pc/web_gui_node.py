@@ -42,6 +42,10 @@ RM1_MIN = -20.0
 RM1_MAX = 70.0
 RM2_MIN = -15.0
 RM2_MAX = 90.0
+LM1_MIN = -20.0
+LM1_MAX = 70.0
+LM2_MIN = -15.0
+LM2_MAX = 90.0
 
 
 class WebGuiNode(Node):
@@ -63,10 +67,13 @@ class WebGuiNode(Node):
         self._external_packet_count = 0
         self._external_mdd1_deg = [0.0, 0.0, 0.0, 0.0]
         self._external_mdd1_lsw = [0, 0, 0, 0]
+        self._external_mdd2_deg = [0.0, 0.0, 0.0, 0.0]
+        self._external_mdd2_lsw = [0, 0, 0, 0]
         self._external_stop_event = threading.Event()
         self._external_last_warn_ts = 0.0
         self._external_no_data_err_count = 0
         self._motor_targets_cache = [0.0] * 6
+        self._sv1_valves_cache = 0
         self._sv2_valves_cache = 0
         self._servo1_targets_cache = [90] * 6
 
@@ -175,8 +182,11 @@ class WebGuiNode(Node):
 
             if cmd == 'module_cmd':
                 payload = data.get('payload', {})
-                if payload.get('type') == 'solenoid' and payload.get('name') == 'SV_2' and payload.get('action') == 'set_valves':
-                    self._sv2_valves_cache = int(payload.get('valves', 0))
+                if payload.get('type') == 'solenoid':
+                    if payload.get('name') == 'SV_1' and payload.get('action') == 'set_valves':
+                        self._sv1_valves_cache = int(payload.get('valves', 0))
+                    elif payload.get('name') == 'SV_2' and payload.get('action') == 'set_valves':
+                        self._sv2_valves_cache = int(payload.get('valves', 0))
                 elif payload.get('type') == 'servo' and payload.get('name') == 'Servo1' and payload.get('action') == 'set_target':
                     self._servo1_targets_cache = [int(v) for v in payload.get('targets', [90] * 6)[:6]]
 
@@ -213,6 +223,8 @@ class WebGuiNode(Node):
                     'packet_count': self._external_packet_count,
                     'mdd1_deg': list(self._external_mdd1_deg),
                     'mdd1_lsw': list(self._external_mdd1_lsw),
+                    'mdd2_deg': list(self._external_mdd2_deg),
+                    'mdd2_lsw': list(self._external_mdd2_lsw),
                 },
             }
         self._broadcast_sync(payload)
@@ -287,6 +299,8 @@ class WebGuiNode(Node):
                         self._publish_external_mdd_packet(dev_id, deg, lsw)
                         if dev_id == 0x01:
                             self._on_external_mdd1(deg, lsw)
+                        elif dev_id == 0x02:
+                            self._on_external_mdd2(deg, lsw)
 
                     del buf[:total]
 
@@ -347,7 +361,20 @@ class WebGuiNode(Node):
 
         # モードON時のみ、受信値から実機コマンドへ変換
         if enabled:
-            self._apply_external_control(deg)
+            self._update_external_control()
+
+    def _on_external_mdd2(self, deg: list[float], lsw: list[int]):
+        now = time.time()
+        with self._external_lock:
+            self._external_last_rx = now
+            self._external_packet_count += 1
+            self._external_mdd2_deg = deg[:4]
+            self._external_mdd2_lsw = lsw[:4]
+            enabled = self._external_ctrl_enabled
+
+        # モードON時のみ、受信値から実機コマンドへ変換
+        if enabled:
+            self._update_external_control()
 
     def _publish_external_mdd_packet(self, dev_id: int, deg: list[float], lsw: list[int]):
         msg = String()
@@ -362,54 +389,171 @@ class WebGuiNode(Node):
         })
         self.pub_external_mdd.publish(msg)
 
-    def _apply_external_control(self, deg: list[float]):
-        # M1 -> RM2, M2 -> RM1
+    def _update_external_control(self):
+        # 必要なデータをスレッドセーフにコピー
+        with self._external_lock:
+            mdd1_deg = list(self._external_mdd1_deg)
+            mdd1_lsw = list(self._external_mdd1_lsw)
+            mdd2_deg = list(self._external_mdd2_deg)
+            mdd2_lsw = list(self._external_mdd2_lsw)
+
         targets = list(self._motor_targets_cache)
-        targets[0] = max(RM1_MIN, min(RM1_MAX, float(deg[1])))
-        targets[1] = max(RM2_MIN, min(RM2_MAX, float(deg[0])))
+
+        # MDD1に基づくマッピング
+        if len(mdd1_deg) >= 4:
+            # M1 -> RM2, M2 -> RM1
+            targets[0] = max(RM1_MIN, min(RM1_MAX, float(mdd1_deg[1])))
+            targets[1] = max(RM2_MIN, min(RM2_MAX, float(mdd1_deg[0])))
+
+            # SW2 (lsw[1]) と SW3 (lsw[2]) による SM1 (targets[4]) の制御
+            # スイッチ入力は反転している（ONのとき0、OFFのとき1）ため、lsw == 0 を ON と判定する
+            sw2_on = (mdd1_lsw[1] == 0)
+            sw3_on = (mdd1_lsw[2] == 0)
+
+            # SW2がONのとき電流指令値+800(0.8A)、SW3がONのとき-800(-0.8A)、それ以外は停止(0)
+            if sw2_on and not sw3_on:
+                targets[4] = 800.0
+            elif sw3_on and not sw2_on:
+                targets[4] = -800.0
+            else:
+                targets[4] = 0.0
+
+        # MDD2に基づくマッピング
+        if len(mdd2_deg) >= 4:
+            # MDD2 M2 -> LM1 (左右の動作対称性に合わせて符号反転)
+            targets[2] = max(LM1_MIN, min(LM1_MAX, -float(mdd2_deg[1])))
+            # MDD2 M1 -> LM2 (左右の動作対称性に合わせて符号反転、可動限界: -15〜90)
+            targets[3] = max(LM2_MIN, min(LM2_MAX, -float(mdd2_deg[0])))
+
         self._motor_targets_cache = targets
 
         motor_msg = Float32MultiArray()
         motor_msg.data = targets[:6]
         self.pub_motor_cmd.publish(motor_msg)
 
-        # M3 が 45deg 超なら SV_2 の V6(bit5) を ON
-        want_on = float(deg[2]) > 45.0
-        current_on = (self._sv2_valves_cache & 0x20) != 0
-        if want_on != current_on:
-            if want_on:
-                self._sv2_valves_cache |= 0x20
+        # --- ソレノイドバルブ制御 ---
+
+        # MDD1に基づくSV_2制御
+        if len(mdd1_deg) >= 4:
+            # M3 が 45deg 超なら SV_2 の V6(bit5) を ON
+            v6_want_on = float(mdd1_deg[2]) > 45.0
+            
+            # SW1 (lsw[0]) が ON のとき SV_2 の CH1 (bit0) を ON。
+            # スイッチは反転している（ONのとき0、OFFのとき1）ため、lsw[0] == 0 のとき物理スイッチONと判定する。
+            sw1_want_on = (mdd1_lsw[0] == 0)
+
+            # 現在のキャッシュ値をもとに、SV_2の目標ビットマスクを決定
+            next_sv2_valves = self._sv2_valves_cache
+
+            # bit 5 (V6) の更新
+            if v6_want_on:
+                next_sv2_valves |= 0x20
             else:
-                self._sv2_valves_cache &= ~0x20
+                next_sv2_valves &= ~0x20
 
-            module_msg = String()
-            module_msg.data = json.dumps({
-                'type': 'solenoid',
-                'name': 'SV_2',
-                'action': 'set_valves',
-                'valves': int(self._sv2_valves_cache),
-            })
-            self.pub_module_cmd.publish(module_msg)
+            # bit 0 (CH1) の更新
+            if sw1_want_on:
+                next_sv2_valves |= 0x01
+            else:
+                next_sv2_valves &= ~0x01
 
-        # M4 (deg[3]) -> Servo1 ch1 (targets[0])
-        # ギヤ比10:1による減速 (エンコーダが10倍加速して測定されているため10で割る)
-        # 0度のとき90度、0~180度にクランプ (181などの上限、下限の補正)
-        if len(deg) >= 4:
+            # 値に変化がある場合のみコマンドをパブリッシュする
+            if next_sv2_valves != self._sv2_valves_cache:
+                self._sv2_valves_cache = next_sv2_valves
+                module_msg = String()
+                module_msg.data = json.dumps({
+                    'type': 'solenoid',
+                    'name': 'SV_2',
+                    'action': 'set_valves',
+                    'valves': int(self._sv2_valves_cache),
+                })
+                self.pub_module_cmd.publish(module_msg)
+
+        # MDD2に基づくSV_1制御
+        # MDD2のスイッチ1（lsw[0]）がONのとき SV_1 (0x300) の ch1,ch2 を ON
+        # MDD2のスイッチ1がOFFのとき SV_1 (0x300) の ch1,ch2 を OFF
+        if len(mdd2_lsw) >= 1:
+            mdd2_sw1_on = (mdd2_lsw[0] == 0)
+            next_sv1_valves = self._sv1_valves_cache
+            if mdd2_sw1_on:
+                next_sv1_valves |= 0x03  # ch1 (bit0) と ch2 (bit1) を ON
+            else:
+                next_sv1_valves &= ~0x03 # OFF
+
+            if next_sv1_valves != self._sv1_valves_cache:
+                self._sv1_valves_cache = next_sv1_valves
+                module_msg = String()
+                module_msg.data = json.dumps({
+                    'type': 'solenoid',
+                    'name': 'SV_1',
+                    'action': 'set_valves',
+                    'valves': int(self._sv1_valves_cache),
+                })
+                self.pub_module_cmd.publish(module_msg)
+
+        # --- サーボモータ (Servo1) 制御 ---
+        servo_updated = False
+        next_servo_targets = list(self._servo1_targets_cache)
+
+        # MDD1に基づくサーボ制御
+        if len(mdd1_deg) >= 4:
+            # M4 (deg[3]) -> Servo1 ch1 (targets[0])
+            # ギヤ比10:1による減速 (エンコーダが10倍加速して測定されているため10で割る)
+            # 0度のとき90度、0~180度にクランプ
             try:
-                servo1_target = int(round((float(deg[3]) / 10.0) + 90.0))
-                servo1_target = max(0, min(180, servo1_target))
-                if self._servo1_targets_cache[0] != servo1_target:
-                    self._servo1_targets_cache[0] = servo1_target
-                    servo_msg = String()
-                    servo_msg.data = json.dumps({
-                        'type': 'servo',
-                        'name': 'Servo1',
-                        'action': 'set_target',
-                        'targets': list(self._servo1_targets_cache)
-                    })
-                    self.pub_module_cmd.publish(servo_msg)
+                servo1_ch1 = int(round((float(mdd1_deg[3]) / 10.0) + 90.0))
+                servo1_ch1 = max(0, min(180, servo1_ch1))
+                if next_servo_targets[0] != servo1_ch1:
+                    next_servo_targets[0] = servo1_ch1
+                    servo_updated = True
             except (ValueError, TypeError) as e:
-                self.get_logger().error(f'サーボ目標値計算エラー: {e}')
+                self.get_logger().error(f'サーボch1目標値計算エラー: {e}')
+
+            # MDDのスイッチ2がONのとき Servo1 ch2 が 40度、OFFのとき 70度
+            try:
+                sw2_on = (mdd1_lsw[1] == 0)
+                servo1_ch2 = 40 if sw2_on else 70
+                if next_servo_targets[1] != servo1_ch2:
+                    next_servo_targets[1] = servo1_ch2
+                    servo_updated = True
+            except (ValueError, TypeError, IndexError) as e:
+                pass
+
+        # MDD2に基づくサーボ制御
+        if len(mdd2_deg) >= 4:
+            # MDD2のM4の符号を反転し＋90したものをServo1のch3に代入（0〜180まで）
+            # M4はギヤ比10:1を考慮して10で割る
+            try:
+                servo1_ch3 = int(round(-(float(mdd2_deg[3]) / 10.0) + 90.0))
+                servo1_ch3 = max(0, min(180, servo1_ch3))
+                if next_servo_targets[2] != servo1_ch3:
+                    next_servo_targets[2] = servo1_ch3
+                    servo_updated = True
+            except (ValueError, TypeError) as e:
+                self.get_logger().error(f'サーボch3目標値計算エラー: {e}')
+
+            # MDD2のM3に＋90したものをServo1のch4に代入（85〜140まで）
+            # 表示仕様に合わせて符号を反転して適用
+            try:
+                servo1_ch4 = int(round(-float(mdd2_deg[2]) + 90.0))
+                servo1_ch4 = max(85, min(140, servo1_ch4))
+                if next_servo_targets[3] != servo1_ch4:
+                    next_servo_targets[3] = servo1_ch4
+                    servo_updated = True
+            except (ValueError, TypeError) as e:
+                self.get_logger().error(f'サーボch4目標値計算エラー: {e}')
+
+        # サーボの更新があればまとめてパブリッシュ
+        if servo_updated:
+            self._servo1_targets_cache = next_servo_targets
+            servo_msg = String()
+            servo_msg.data = json.dumps({
+                'type': 'servo',
+                'name': 'Servo1',
+                'action': 'set_target',
+                'targets': list(self._servo1_targets_cache)
+            })
+            self.pub_module_cmd.publish(servo_msg)
 
         self._publish_external_status()
 

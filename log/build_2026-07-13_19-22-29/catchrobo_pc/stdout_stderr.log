@@ -1,0 +1,24 @@
+running egg_info
+writing ../../build/catchrobo_pc/catchrobo_pc.egg-info/PKG-INFO
+writing dependency_links to ../../build/catchrobo_pc/catchrobo_pc.egg-info/dependency_links.txt
+writing entry points to ../../build/catchrobo_pc/catchrobo_pc.egg-info/entry_points.txt
+writing requirements to ../../build/catchrobo_pc/catchrobo_pc.egg-info/requires.txt
+writing top-level names to ../../build/catchrobo_pc/catchrobo_pc.egg-info/top_level.txt
+reading manifest file '../../build/catchrobo_pc/catchrobo_pc.egg-info/SOURCES.txt'
+writing manifest file '../../build/catchrobo_pc/catchrobo_pc.egg-info/SOURCES.txt'
+running build
+running build_py
+copying catchrobo_pc/web_gui_node.py -> /home/altair/catchrobo2026-pc/build/catchrobo_pc/build/lib/catchrobo_pc
+running install
+running install_lib
+copying /home/altair/catchrobo2026-pc/build/catchrobo_pc/build/lib/catchrobo_pc/web_gui_node.py -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages/catchrobo_pc
+byte-compiling /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages/catchrobo_pc/web_gui_node.py to web_gui_node.cpython-310.pyc
+running install_data
+copying catchrobo_pc/static/js/app.js -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc/static/js
+running install_egg_info
+removing '/home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages/catchrobo_pc-0.1.0-py3.10.egg-info' (and everything under it)
+Copying ../../build/catchrobo_pc/catchrobo_pc.egg-info to /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages/catchrobo_pc-0.1.0-py3.10.egg-info
+running install_scripts
+Installing debug_node script to /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc
+Installing web_gui_node script to /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc
+writing list of installed files to '/home/altair/catchrobo2026-pc/build/catchrobo_pc/install.log'

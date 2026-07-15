@@ -22,14 +22,29 @@ const state = {
   motorConfig: [
     { name: 'RM1', min: -20.0, max: 70.0 },
     { name: 'RM2', min: -15.0, max: 90.0 },
-    { name: 'LM1', min: -20.0, max: 30.0 },
-    { name: 'LM2', min: -10.0, max: 20.0 },
+    { name: 'LM1', min: -20.0, max: 70.0 },
+    { name: 'LM2', min: -15.0, max: 90.0 },
     { name: 'SM1', min: -90.0, max: 90.0 },
     { name: 'LM3', min: -10.0, max: 20.0 },
   ],
 
   // MDD1 状態
   mdd1: {
+    motors: [
+      { target: 0, mode: 0, p: 10, i: 0, d: 0, wheel: 65, dir: 1 },
+      { target: 0, mode: 0, p: 10, i: 0, d: 0, wheel: 65, dir: 1 },
+      { target: 0, mode: 0, p: 10, i: 0, d: 0, wheel: 65, dir: 1 },
+      { target: 0, mode: 0, p: 10, i: 0, d: 0, wheel: 65, dir: 1 },
+    ],
+    appMode: 0,
+    sw: [0, 0, 0, 0],
+    err: 0,
+    enc_deg: [0, 0, 0, 0],
+    enc_rps: [0, 0, 0, 0],
+  },
+
+  // MDD2 状態
+  mdd2: {
     motors: [
       { target: 0, mode: 0, p: 10, i: 0, d: 0, wheel: 65, dir: 1 },
       { target: 0, mode: 0, p: 10, i: 0, d: 0, wheel: 65, dir: 1 },
@@ -68,6 +83,8 @@ const state = {
     packet_count: 0,
     mdd1_deg: [0, 0, 0, 0],
     mdd1_lsw: [0, 0, 0, 0],
+    mdd2_deg: [0, 0, 0, 0],
+    mdd2_lsw: [0, 0, 0, 0],
   },
 };
 
@@ -154,7 +171,6 @@ function renderExternalControllerUI() {
   const s = state.externalCtrl;
   const status = document.getElementById('ext-ctrl-status');
   const detail = document.getElementById('ext-ctrl-detail');
-  const map = document.getElementById('ext-ctrl-map');
   const btn = document.getElementById('btn-ext-ctrl-mode');
 
   if (status) {
@@ -170,14 +186,38 @@ function renderExternalControllerUI() {
     detail.textContent = `PORT: ${p}  age:${age}s  pkt:${s.packet_count ?? 0}`;
   }
 
-  if (map) {
-    const d = s.mdd1_deg || [0, 0, 0, 0];
-    const sw = s.mdd1_lsw || [0, 0, 0, 0];
-    const swText = sw.map((v, i) => `SW${i + 1}:${v ? 'ON' : 'off'}`).join('  ');
-    // ギヤ比 10:1 を考慮してエンコーダ生値を 10 で割る
-    const m4 = (+d[3] || 0) / 10.0;
-    const servoTarget = Math.max(0, Math.min(180, Math.round(m4 + 90)));
-    map.textContent = `M1→RM2:${(+d[0] || 0).toFixed(1)}°  M2→RM1:${(+d[1] || 0).toFixed(1)}°  M3:${(+d[2] || 0).toFixed(1)}° (45°閾値でSV_2 V6)  M4:${m4.toFixed(1)}° (1/10減速後、＋90でServo1 CH1:${servoTarget}°)  ${swText}`;
+  // MDD1のデバッグ値をテーブルにセット
+  const d1 = s.mdd1_deg || [0, 0, 0, 0];
+  const sw1 = s.mdd1_lsw || [0, 0, 0, 0];
+  for (let i = 0; i < 4; i++) {
+    let val = d1[i];
+    if (i === 3) val /= 10.0; // M4はギヤ比 10:1 を考慮
+    setEl(`ext-mdd1-m${i+1}`, `${val >= 0 ? '+' : ''}${val.toFixed(1)}°`);
+    const swBadge = document.getElementById(`ext-mdd1-sw${i+1}`);
+    if (swBadge) {
+      const isOn = (sw1[i] === 0);
+      swBadge.className = `sw-badge ${isOn ? 'on' : 'off'}`;
+    }
+  }
+
+  // MDD2のデバッグ値をテーブルにセット
+  const d2 = s.mdd2_deg || [0, 0, 0, 0];
+  const sw2 = s.mdd2_lsw || [0, 0, 0, 0];
+  for (let i = 0; i < 4; i++) {
+    // 現在の状態（M1〜M3そのまま、M4反転）を基準にすべて符号を反転する。
+    // つまり M1〜M3 は符号を反転し、M4 は符号を反転せずギヤ比 10:1 を考慮して10で割る。
+    let val = d2[i];
+    if (i === 3) {
+      val = val / 10.0;
+    } else {
+      val = -val;
+    }
+    setEl(`ext-mdd2-m${i+1}`, `${val >= 0 ? '+' : ''}${val.toFixed(1)}°`);
+    const swBadge = document.getElementById(`ext-mdd2-sw${i+1}`);
+    if (swBadge) {
+      const isOn = (sw2[i] === 0);
+      swBadge.className = `sw-badge ${isOn ? 'on' : 'off'}`;
+    }
   }
 
   if (btn) {
@@ -198,16 +238,28 @@ function updateCanStatusUI(data) {
     badge.textContent = data.connected ? `CAN: ${data.port || 'Online'}` : 'CAN: Offline';
   }
 
-  // MDD1 状態
   const modules = data.modules || {};
-  const mdd = modules.MDD1 || {};
-  if (Object.keys(mdd).length) {
-    state.mdd1.appMode = mdd.app_mode || 0;
-    state.mdd1.sw = mdd.sw || [0, 0, 0, 0];
-    state.mdd1.err = mdd.err || 0;
-    state.mdd1.enc_deg = mdd.enc_deg || [0, 0, 0, 0];
-    state.mdd1.enc_rps = mdd.enc_rps || [0, 0, 0, 0];
-    renderMdd1Status();
+  
+  // MDD1 状態
+  const mdd1 = modules.MDD1 || {};
+  if (Object.keys(mdd1).length) {
+    state.mdd1.appMode = mdd1.app_mode || 0;
+    state.mdd1.sw = mdd1.sw || [0, 0, 0, 0];
+    state.mdd1.err = mdd1.err || 0;
+    state.mdd1.enc_deg = mdd1.enc_deg || [0, 0, 0, 0];
+    state.mdd1.enc_rps = mdd1.enc_rps || [0, 0, 0, 0];
+    renderMddStatus('MDD1');
+  }
+
+  // MDD2 状態
+  const mdd2 = modules.MDD2 || {};
+  if (Object.keys(mdd2).length) {
+    state.mdd2.appMode = mdd2.app_mode || 0;
+    state.mdd2.sw = mdd2.sw || [0, 0, 0, 0];
+    state.mdd2.err = mdd2.err || 0;
+    state.mdd2.enc_deg = mdd2.enc_deg || [0, 0, 0, 0];
+    state.mdd2.enc_rps = mdd2.enc_rps || [0, 0, 0, 0];
+    renderMddStatus('MDD2');
   }
 
   // 統計
@@ -300,49 +352,58 @@ function setMotorMode(mode) {
 }
 
 // ─────────────────────────────────────────────────────────
-// モジュール制御 (MDD1)
+// モジュール制御 (MDD1 / MDD2)
 // ─────────────────────────────────────────────────────────
-function sendMddTarget() {
+function sendMddTarget(name) {
+  const isMdd1 = (name === 'MDD1');
+  const prefix = isMdd1 ? 'mdd1' : 'mdd2';
+  const mdd = isMdd1 ? state.mdd1 : state.mdd2;
+
   const targets = [];
   for (let i = 0; i < 4; i++) {
-    const el = document.getElementById(`mdd-target-${i}`);
+    const el = document.getElementById(`${prefix}-target-${i}`);
     targets.push(el ? parseInt(el.value) || 0 : 0);
-    state.mdd1.motors[i].target = targets[i];
+    mdd.motors[i].target = targets[i];
   }
   sendWs({
     cmd: 'module_cmd',
-    payload: { type: 'mdd', name: 'MDD1', action: 'set_target', targets },
+    payload: { type: 'mdd', name: name, action: 'set_target', targets },
   });
 }
 
-function sendMddParams() {
+function sendMddParams(name) {
   sendWs({
     cmd: 'module_cmd',
-    payload: { type: 'mdd', name: 'MDD1', action: 'send_params' },
+    payload: { type: 'mdd', name: name, action: 'send_params' },
   });
-  addLog('MDD1 パラメータ送信要求', 'info');
+  addLog(`${name} パラメータ送信要求`, 'info');
 }
 
-function updateMddParam(idx, key, val) {
-  state.mdd1.motors[idx][key] = parseFloat(val);
+function updateMddParam(name, idx, key, val) {
+  const isMdd1 = (name === 'MDD1');
+  const mdd = isMdd1 ? state.mdd1 : state.mdd2;
+  mdd.motors[idx][key] = parseFloat(val);
   sendWs({
     cmd: 'module_cmd',
     payload: {
-      type: 'mdd', name: 'MDD1', action: 'set_params',
-      motor_idx: idx, ...state.mdd1.motors[idx]
+      type: 'mdd', name: name, action: 'set_params',
+      motor_idx: idx, ...mdd.motors[idx]
     },
   });
 }
 
-function renderMdd1Status() {
-  const mdd = state.mdd1;
-  setEl('mdd1-mode-str', mdd.appMode === 1 ? 'CTRL MODE' : 'PARAM MODE');
-  const modeEl = document.getElementById('mdd1-mode-str');
+function renderMddStatus(name) {
+  const isMdd1 = (name === 'MDD1');
+  const mdd = isMdd1 ? state.mdd1 : state.mdd2;
+  const prefix = isMdd1 ? 'mdd1' : 'mdd2';
+
+  setEl(`${prefix}-mode-str`, mdd.appMode === 1 ? 'CTRL MODE' : 'PARAM MODE');
+  const modeEl = document.getElementById(`${prefix}-mode-str`);
   if (modeEl) {
     modeEl.style.color = mdd.appMode === 1 ? 'var(--success)' : 'var(--text-dim)';
   }
-  setEl('mdd1-sw', `SW:[${mdd.sw.join(',')}]  Err:${mdd.err}`);
-  mdd.enc_deg.forEach((v, i) => setEl(`mdd-enc-${i}`, `${v >= 0 ? '+' : ''}${v.toFixed(1)}°`));
+  setEl(`${prefix}-sw`, `SW:[${mdd.sw.join(',')}]  Err:${mdd.err}`);
+  mdd.enc_deg.forEach((v, i) => setEl(`${prefix}-enc-${i}`, `${v >= 0 ? '+' : ''}${v.toFixed(1)}°`));
 }
 
 // ─────────────────────────────────────────────────────────
