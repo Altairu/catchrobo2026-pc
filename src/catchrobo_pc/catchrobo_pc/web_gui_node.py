@@ -76,6 +76,7 @@ class WebGuiNode(Node):
         self._sv1_valves_cache = 0
         self._sv2_valves_cache = 0
         self._servo1_targets_cache = [90] * 6
+        self._servo1_ch5_last_update = 0.0
 
         # ─── ROS2 パブリッシャー ──────────────────────
         self.pub_motor_cmd  = self.create_publisher(Float32MultiArray, '/catchrobo/motor_cmd',  10)
@@ -410,11 +411,11 @@ class WebGuiNode(Node):
             sw2_on = (mdd1_lsw[1] == 0)
             sw3_on = (mdd1_lsw[2] == 0)
 
-            # SW2がONのとき電流指令値+800(0.8A)、SW3がONのとき-800(-0.8A)、それ以外は停止(0)
+            # SW2がONのとき電流指令値+2000(2.0A)、SW3がONのとき-2000(-2.0A)、それ以外は停止(0)
             if sw2_on and not sw3_on:
-                targets[4] = 800.0
+                targets[4] = 2000.0
             elif sw3_on and not sw2_on:
-                targets[4] = -800.0
+                targets[4] = -2000.0
             else:
                 targets[4] = 0.0
 
@@ -509,16 +510,6 @@ class WebGuiNode(Node):
             except (ValueError, TypeError) as e:
                 self.get_logger().error(f'サーボch1目標値計算エラー: {e}')
 
-            # MDDのスイッチ2がONのとき Servo1 ch2 が 40度、OFFのとき 70度
-            try:
-                sw2_on = (mdd1_lsw[1] == 0)
-                servo1_ch2 = 40 if sw2_on else 70
-                if next_servo_targets[1] != servo1_ch2:
-                    next_servo_targets[1] = servo1_ch2
-                    servo_updated = True
-            except (ValueError, TypeError, IndexError) as e:
-                pass
-
         # MDD2に基づくサーボ制御
         if len(mdd2_deg) >= 4:
             # MDD2のM4の符号を反転し＋90したものをServo1のch3に代入（0〜180まで）
@@ -542,6 +533,40 @@ class WebGuiNode(Node):
                     servo_updated = True
             except (ValueError, TypeError) as e:
                 self.get_logger().error(f'サーボch4目標値計算エラー: {e}')
+
+            # MDD2のスイッチ2がONのとき Servo1 ch2 が 40度、OFFのとき 70度
+            try:
+                if len(mdd2_lsw) >= 2:
+                    mdd2_sw2_on = (mdd2_lsw[1] == 0)
+                    servo1_ch2 = 40 if mdd2_sw2_on else 70
+                    if next_servo_targets[1] != servo1_ch2:
+                        next_servo_targets[1] = servo1_ch2
+                        servo_updated = True
+            except (ValueError, TypeError, IndexError) as e:
+                pass
+
+            # MDD2のSW3/SW4によるServo1 ch5の連続角度制御 (0〜180度)
+            try:
+                if len(mdd2_lsw) >= 4:
+                    mdd2_sw3_on = (mdd2_lsw[2] == 0)
+                    mdd2_sw4_on = (mdd2_lsw[3] == 0)
+                    
+                    now = time.time()
+                    if (mdd2_sw3_on or mdd2_sw4_on) and (now - self._servo1_ch5_last_update > 0.05):
+                        if mdd2_sw3_on and not mdd2_sw4_on:
+                            servo1_ch5 = min(180, next_servo_targets[4] + 1)
+                            if next_servo_targets[4] != servo1_ch5:
+                                next_servo_targets[4] = servo1_ch5
+                                servo_updated = True
+                                self._servo1_ch5_last_update = now
+                        elif mdd2_sw4_on and not mdd2_sw3_on:
+                            servo1_ch5 = max(0, next_servo_targets[4] - 1)
+                            if next_servo_targets[4] != servo1_ch5:
+                                next_servo_targets[4] = servo1_ch5
+                                servo_updated = True
+                                self._servo1_ch5_last_update = now
+            except (ValueError, TypeError, IndexError) as e:
+                self.get_logger().error(f'Servo1 ch5制御エラー: {e}')
 
         # サーボの更新があればまとめてパブリッシュ
         if servo_updated:
