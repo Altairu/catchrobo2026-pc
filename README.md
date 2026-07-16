@@ -42,11 +42,22 @@ catchrobo2026-pc/
 ### 外部コントローラモード
 
 接続設定タブの **「外部コントローラ: ON/OFF」** で有効化できる。
-有効時はPC側で `/dev/ttyACM*` を自動探索し、シリアル受信したMDD1データを以下にマッピングして送信する。
+有効時はPC側で `/dev/ttyACM*` を自動探索し、シリアル受信したMDD1およびMDD2データを以下にマッピングして送信する。
 
+**MDD1:**
 - `M1(deg)` → `RM2` 目標値 (`/catchrobo/motor_cmd[1]`)
 - `M2(deg)` → `RM1` 目標値 (`/catchrobo/motor_cmd[0]`)
-- `M3(deg)` > 45.0 のとき `SV_2` の `V6` を ON、45.0 以下で OFF
+- `M3(deg)` > 45.0 のとき `SV_2` の `V6` (bit5) を ON、45.0 以下で OFF
+- `SW1` ON のとき `SV_2` の `CH1` (bit0) を ON
+
+**MDD2:**
+- `M1(deg)` → `LM2` 目標値 (反転, `/catchrobo/motor_cmd[3]`)
+- `M2(deg)` → `LM1` 目標値 (反転, `/catchrobo/motor_cmd[2]`)
+- `M3(deg)` → `Servo1` ch4 (85〜140度)
+- `M4(deg)` → `Servo1` ch3 (0〜180度, 反転)
+- `SW1` ON のとき `SV_1` ch1, ch2 ON
+- `SW2` ON のとき `Servo1` ch2 が 40度 (OFF時 70度)
+- `SW3`, `SW4` で `Servo1` ch5 の角度を連続増減 (0〜180度)
 
 受信パケットは `sample/sample_serial.py` と同じフォーマットを想定:
 
@@ -113,6 +124,11 @@ NUCが起動していれば `/catchrobo/available_ports` トピックが自動�
 {"type":"solenoid","name":"SV_1","action":"set_valves","valves":3}
 ```
 
+**Servo 目標角度送信:**
+```json
+{"type":"servo","name":"Servo1","action":"set_target","targets":[90,90,90,90,90,90]}
+```
+
 ---
 
 ## WebSocket メッセージ仕様
@@ -121,7 +137,7 @@ NUCが起動していれば `/catchrobo/available_ports` トピックが自動�
 
 | `cmd` フィールド      | 内容                                                       |
 | --------------------- | ---------------------------------------------------------- |
-| `motor_cmd`           | `{"cmd":"motor_cmd","targets":[0,0,0,0,0]}`                |
+| `motor_cmd`           | `{"cmd":"motor_cmd","targets":[0,0,0,0,0,0]}`              |
 | `motor_mode`          | `{"cmd":"motor_mode","mode":1}`                            |
 | `module_cmd`          | `{"cmd":"module_cmd","payload":{...}}`                     |
 | `set_ports`           | `{"cmd":"set_ports","can_port":"...","serial_port":"..."}` |
