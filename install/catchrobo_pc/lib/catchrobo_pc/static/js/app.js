@@ -86,6 +86,9 @@ const state = {
     mdd2_deg: [0, 0, 0, 0],
     mdd2_lsw: [0, 0, 0, 0],
   },
+
+  // ネットワーク情報
+  networkInfo: null,
 };
 
 // ─────────────────────────────────────────────────────────
@@ -153,6 +156,9 @@ function handleServerMessage(msg) {
     case 'external_controller':
       state.externalCtrl = msg.data || state.externalCtrl;
       renderExternalControllerUI();
+      break;
+    case 'network_info':
+      updateNetworkInfoUI(msg.data);
       break;
   }
 }
@@ -528,6 +534,100 @@ function switchView(viewId) {
   if (btn) btn.classList.add('active');
 }
 
+// ─────────────────────────────────────────────────────────
+// QRコード & スマホ接続モーダル制御
+// ─────────────────────────────────────────────────────────
+let qrCodeInstance = null;
+
+async function fetchNetworkInfo() {
+  try {
+    const res = await fetch('/api/network_info');
+    if (res.ok) {
+      const data = await res.json();
+      state.networkInfo = data;
+      updateNetworkInfoUI(data);
+    }
+  } catch (e) {
+    sendWs({ cmd: 'get_network_info' });
+  }
+}
+
+function updateNetworkInfoUI(data) {
+  state.networkInfo = data;
+  const select = document.getElementById('qr-net-select');
+  if (!select) return;
+
+  const interfaces = data.interfaces || [];
+  select.innerHTML = '';
+
+  if (interfaces.length === 0) {
+    select.innerHTML = '<option value="http://localhost:8080">ローカルホスト (http://localhost:8080)</option>';
+  } else {
+    interfaces.forEach(iface => {
+      const opt = document.createElement('option');
+      opt.value = iface.url;
+      opt.textContent = `${iface.name} - ${iface.url}`;
+      select.appendChild(opt);
+    });
+  }
+
+  const selectedUrl = select.value || (interfaces[0] ? interfaces[0].url : `http://${location.hostname}:8080`);
+  onQrNetworkChange(selectedUrl);
+}
+
+function onQrNetworkChange(url) {
+  const urlInput = document.getElementById('qr-url-input');
+  if (urlInput) urlInput.value = url;
+  renderQrCode(url);
+}
+
+function renderQrCode(url) {
+  const box = document.getElementById('qrcode-box');
+  if (!box) return;
+  box.innerHTML = '';
+  try {
+    if (typeof QRCode !== 'undefined') {
+      qrCodeInstance = new QRCode(box, {
+        text: url,
+        width: 200,
+        height: 200,
+        colorDark: '#0f172a',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    }
+  } catch (e) {
+    console.error('QRコード描画エラー:', e);
+  }
+}
+
+function openQrModal() {
+  const modal = document.getElementById('qr-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+    fetchNetworkInfo();
+  }
+}
+
+function closeQrModal() {
+  const modal = document.getElementById('qr-modal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+function copyQrUrl() {
+  const input = document.getElementById('qr-url-input');
+  if (!input) return;
+  input.select();
+  navigator.clipboard.writeText(input.value).then(() => {
+    addLog(`コピー完了: ${input.value}`, 'success');
+  }).catch(() => {
+    document.execCommand('copy');
+    addLog(`コピー完了: ${input.value}`, 'success');
+  });
+}
+
 // 全画面切り替え
 function toggleFullscreen() {
   if (!document.fullscreenElement) {
@@ -543,6 +643,9 @@ function toggleFullscreen() {
 document.addEventListener('DOMContentLoaded', () => {
   // WebSocket 接続
   connectWs();
+
+  // ネットワーク情報の初回読み込み
+  fetchNetworkInfo();
 
   // ナビゲーションボタン
   document.querySelectorAll('.nav-item').forEach(btn => {

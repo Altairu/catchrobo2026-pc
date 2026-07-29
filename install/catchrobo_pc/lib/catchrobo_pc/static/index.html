@@ -22,6 +22,9 @@
         <p>Robot Web Controller</p>
         <div id="can-badge" class="conn-badge offline">CAN: Offline</div>
         <div id="serial-badge" class="conn-badge offline" style="margin-top:4px">Ser: Offline</div>
+        <button id="btn-open-qr" class="btn btn-sm btn-ghost" style="margin-top:8px;width:100%;justify-content:center;gap:6px;font-size:12px;" onclick="openQrModal()">
+          <i class="fa-solid fa-qrcode"></i> スマホ接続 QR
+        </button>
       </div>
 
       <div class="nav-section">
@@ -556,7 +559,41 @@
     <span>WebSocket 切断</span>
   </div>
 
-  <script src="/static/js/app.js"></script>
+  <!-- 📱 QRコード モーダル -->
+  <div id="qr-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this) closeQrModal()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-qrcode" style="color:var(--primary)"></i> スマホ・タブレット接続</h3>
+        <button class="btn-close" onclick="closeQrModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">
+          同じWi-Fi/LAN内のスマホやタブレットでQRコードをスキャンするか、表示されたURLをブラウザに入力してください。
+        </p>
+
+        <div class="qr-select-group">
+          <label for="qr-net-select"><i class="fa-solid fa-network-wired"></i> 接続ネットワーク:</label>
+          <select id="qr-net-select" onchange="onQrNetworkChange(this.value)">
+            <option value="">IPを取得中...</option>
+          </select>
+        </div>
+
+        <div class="qr-code-wrapper">
+          <div id="qrcode-box"></div>
+        </div>
+
+        <div class="qr-url-box">
+          <input type="text" id="qr-url-input" readonly value="http://localhost:8080">
+          <button class="btn btn-primary btn-sm" onclick="copyQrUrl()">
+            <i class="fa-solid fa-copy"></i> URLコピー
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/qrcode.min.js"></script>
+  <script src="/static/js/app.js?v=2"></script>
   <script>
     // ─── 動的UI生成 (DOMContentLoaded後) ────────────────────
 

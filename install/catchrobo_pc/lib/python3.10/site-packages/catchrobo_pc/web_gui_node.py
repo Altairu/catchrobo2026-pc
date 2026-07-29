@@ -19,6 +19,7 @@ import os
 import time
 import struct
 import signal
+import socket
 from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -109,6 +110,11 @@ class WebGuiNode(Node):
         async def root():
             return FileResponse(str(STATIC_DIR / 'index.html'))
 
+        # REST API: ネットワーク情報（IPアドレス・接続URL）の取得
+        @self.app.get('/api/network_info')
+        async def network_info():
+            return self._get_network_info()
+
         # WebSocket エンドポイント
         @self.app.websocket('/ws')
         async def ws_endpoint(ws: WebSocket):
@@ -154,8 +160,16 @@ class WebGuiNode(Node):
 
             elif cmd == 'module_cmd':
                 # モジュール操作コマンド (MDD/Solenoid)
-                msg = String()
                 payload = data.get('payload', {})
+                # GUIからのMDD1の目標値送信時にM1, M2, M3を反転してCANに送る
+                if payload.get('type') == 'mdd' and payload.get('name') == 'MDD1' and payload.get('action') == 'set_target':
+                    t = payload.get('targets', [])
+                    if len(t) >= 3:
+                        t[0] = -t[0]
+                        t[1] = -t[1]
+                        t[2] = -t[2]
+                
+                msg = String()
                 msg.data = json.dumps(payload)
                 self.pub_module_cmd.publish(msg)
 
@@ -178,6 +192,10 @@ class WebGuiNode(Node):
             elif cmd == 'ext_ctrl_get_status':
                 self._publish_external_status()
 
+            elif cmd == 'get_network_info':
+                info = self._get_network_info()
+                self._broadcast_sync({'type': 'network_info', 'data': info})
+
             if cmd == 'motor_cmd':
                 self._motor_targets_cache = [float(t) for t in targets[:6]]
 
@@ -199,7 +217,18 @@ class WebGuiNode(Node):
     # ─────────────────────────────────────────────────
 
     def _on_can_status(self, msg: String):
-        self._broadcast_sync({'type': 'can_status', 'data': json.loads(msg.data)})
+        data = json.loads(msg.data)
+        try:
+            mdd1 = data.get('modules', {}).get('MDD1')
+            if mdd1 and 'enc_deg' in mdd1:
+                deg = mdd1['enc_deg']
+                if len(deg) >= 3:
+                    deg[0] = -deg[0]
+                    deg[1] = -deg[1]
+                    deg[2] = -deg[2]
+        except Exception:
+            pass
+        self._broadcast_sync({'type': 'can_status', 'data': data})
 
     def _on_serial_status(self, msg: String):
         self._broadcast_sync({'type': 'serial_status', 'data': json.loads(msg.data)})
@@ -229,6 +258,48 @@ class WebGuiNode(Node):
                 },
             }
         self._broadcast_sync(payload)
+
+    def _get_network_info(self) -> dict:
+        """自PCのIPアドレス一覧とアクセス用URL情報を取得する"""
+        ips = []
+        port = 8080
+
+        # 1. アクティブなプライマリIPの取得テスト
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(('10.255.255.255', 1))
+            primary_ip = s.getsockname()[0]
+            s.close()
+            if primary_ip and not primary_ip.startswith('127.'):
+                ips.append(primary_ip)
+        except Exception:
+            pass
+
+        # 2. hostname経由での追加IP取得
+        try:
+            hostname = socket.gethostname()
+            for ip in socket.gethostbyname_ex(hostname)[2]:
+                if not ip.startswith('127.') and ip not in ips:
+                    ips.append(ip)
+        except Exception:
+            pass
+
+        if not ips:
+            ips = ['127.0.0.1']
+
+        interfaces = []
+        for idx, ip in enumerate(ips):
+            label = 'メインネットワーク' if idx == 0 and ip != '127.0.0.1' else f'ネットワーク ({ip})'
+            interfaces.append({
+                'name': label,
+                'ip': ip,
+                'url': f'http://{ip}:{port}'
+            })
+
+        return {
+            'port': port,
+            'interfaces': interfaces
+        }
 
     def _find_external_port(self) -> str:
         candidates = []
@@ -296,6 +367,10 @@ class WebGuiNode(Node):
 
                     if cs == cs_recv and data_len == data_len_expected and dev_id in dev_ids:
                         deg = [struct.unpack_from('<h', data, i * 2)[0] / 10.0 for i in range(4)]
+                        if dev_id == 0x01:
+                            deg[0] = -deg[0]
+                            deg[1] = -deg[1]
+                            deg[2] = -deg[2]
                         lsw = [int(v) for v in data[8:12]]
                         self._publish_external_mdd_packet(dev_id, deg, lsw)
                         if dev_id == 0x01:
@@ -471,15 +546,15 @@ class WebGuiNode(Node):
                 self.pub_module_cmd.publish(module_msg)
 
         # MDD2に基づくSV_1制御
-        # MDD2のスイッチ1（lsw[0]）がONのとき SV_1 (0x300) の ch1,ch2 を ON
-        # MDD2のスイッチ1がOFFのとき SV_1 (0x300) の ch1,ch2 を OFF
+        # MDD2のスイッチ1（lsw[0]）がONのとき SV_1 (0x300) の ch1,ch2 を OFF
+        # MDD2のスイッチ1がOFFのとき SV_1 (0x300) の ch1,ch2 を ON
         if len(mdd2_lsw) >= 1:
             mdd2_sw1_on = (mdd2_lsw[0] == 0)
             next_sv1_valves = self._sv1_valves_cache
             if mdd2_sw1_on:
-                next_sv1_valves |= 0x03  # ch1 (bit0) と ch2 (bit1) を ON
-            else:
                 next_sv1_valves &= ~0x03 # OFF
+            else:
+                next_sv1_valves |= 0x03  # ON
 
             if next_sv1_valves != self._sv1_valves_cache:
                 self._sv1_valves_cache = next_sv1_valves
@@ -541,6 +616,17 @@ class WebGuiNode(Node):
                     servo1_ch2 = 40 if mdd2_sw2_on else 70
                     if next_servo_targets[1] != servo1_ch2:
                         next_servo_targets[1] = servo1_ch2
+                        servo_updated = True
+            except (ValueError, TypeError, IndexError) as e:
+                pass
+
+            # MDD2のスイッチ1がONのとき Servo1 ch5 が 180度、OFFのとき 90度
+            try:
+                if len(mdd2_lsw) >= 1:
+                    mdd2_sw1_on = (mdd2_lsw[0] == 0)
+                    servo1_ch5 = 180 if mdd2_sw1_on else 90
+                    if next_servo_targets[4] != servo1_ch5:
+                        next_servo_targets[4] = servo1_ch5
                         servo_updated = True
             except (ValueError, TypeError, IndexError) as e:
                 pass
