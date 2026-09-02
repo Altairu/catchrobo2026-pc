@@ -20,8 +20,8 @@ const state = {
 
   // モーター設定
   motorConfig: [
-    { name: 'RM1', min: -20.0, max: 70.0 },
-    { name: 'RM2', min: -15.0, max: 90.0 },
+    { name: 'RM1', min: -20.0, max: 90.0 },
+    { name: 'RM2', min: -20.0, max: 110.0 },
     { name: 'LM1', min: -20.0, max: 70.0 },
     { name: 'LM2', min: -15.0, max: 90.0 },
     { name: 'SM1', min: -90.0, max: 90.0 },

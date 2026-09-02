@@ -40,9 +40,9 @@ else:
 
 # 外部コントローラ入力の安全範囲 (GUIスライダー範囲と同じ)
 RM1_MIN = -20.0
-RM1_MAX = 70.0
-RM2_MIN = -15.0
-RM2_MAX = 90.0
+RM1_MAX = 90.0
+RM2_MIN = -20.0
+RM2_MAX = 110.0
 LM1_MIN = -20.0
 LM1_MAX = 70.0
 LM2_MIN = -15.0
