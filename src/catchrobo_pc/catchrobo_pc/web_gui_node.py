@@ -509,63 +509,49 @@ class WebGuiNode(Node):
 
         # --- ソレノイドバルブ制御 ---
 
-        # MDD1に基づくSV_2制御
+        next_sv1_valves = self._sv1_valves_cache
+
+        # MDD1に基づくSV_1制御
         if len(mdd1_deg) >= 4:
-            # M3 が 45deg 超なら SV_2 の V6(bit5) を ON
-            v6_want_on = float(mdd1_deg[2]) > 45.0
+            # M3 が 45deg 超なら SV_1 の CH4(bit3) を ON
+            v4_want_on = float(mdd1_deg[2]) > 45.0
             
-            # SW1 (lsw[0]) が ON のとき SV_2 の CH1 (bit0) を ON。
+            # SW1 (lsw[0]) が ON のとき SV_1 の CH3 (bit2) を ON。
             # スイッチは反転している（ONのとき0、OFFのとき1）ため、lsw[0] == 0 のとき物理スイッチONと判定する。
             sw1_want_on = (mdd1_lsw[0] == 0)
 
-            # 現在のキャッシュ値をもとに、SV_2の目標ビットマスクを決定
-            next_sv2_valves = self._sv2_valves_cache
-
-            # bit 5 (V6) の更新
-            if v6_want_on:
-                next_sv2_valves |= 0x20
+            # bit 3 (CH4) の更新
+            if v4_want_on:
+                next_sv1_valves |= 0x08
             else:
-                next_sv2_valves &= ~0x20
+                next_sv1_valves &= ~0x08
 
-            # bit 0 (CH1) の更新
+            # bit 2 (CH3) の更新
             if sw1_want_on:
-                next_sv2_valves |= 0x01
+                next_sv1_valves |= 0x04
             else:
-                next_sv2_valves &= ~0x01
-
-            # 値に変化がある場合のみコマンドをパブリッシュする
-            if next_sv2_valves != self._sv2_valves_cache:
-                self._sv2_valves_cache = next_sv2_valves
-                module_msg = String()
-                module_msg.data = json.dumps({
-                    'type': 'solenoid',
-                    'name': 'SV_2',
-                    'action': 'set_valves',
-                    'valves': int(self._sv2_valves_cache),
-                })
-                self.pub_module_cmd.publish(module_msg)
+                next_sv1_valves &= ~0x04
 
         # MDD2に基づくSV_1制御
         # MDD2のスイッチ1（lsw[0]）がONのとき SV_1 (0x300) の ch1,ch2 を OFF
         # MDD2のスイッチ1がOFFのとき SV_1 (0x300) の ch1,ch2 を ON
         if len(mdd2_lsw) >= 1:
             mdd2_sw1_on = (mdd2_lsw[0] == 0)
-            next_sv1_valves = self._sv1_valves_cache
             if mdd2_sw1_on:
                 next_sv1_valves &= ~0x03 # OFF
             else:
                 next_sv1_valves |= 0x03  # ON
 
-            if next_sv1_valves != self._sv1_valves_cache:
-                self._sv1_valves_cache = next_sv1_valves
-                module_msg = String()
-                module_msg.data = json.dumps({
-                    'type': 'solenoid',
-                    'name': 'SV_1',
-                    'action': 'set_valves',
-                    'valves': int(self._sv1_valves_cache),
-                })
-                self.pub_module_cmd.publish(module_msg)
+        if next_sv1_valves != self._sv1_valves_cache:
+            self._sv1_valves_cache = next_sv1_valves
+            module_msg = String()
+            module_msg.data = json.dumps({
+                'type': 'solenoid',
+                'name': 'SV_1',
+                'action': 'set_valves',
+                'valves': int(self._sv1_valves_cache),
+            })
+            self.pub_module_cmd.publish(module_msg)
 
         # --- サーボモータ (Servo1) 制御 ---
         servo_updated = False
