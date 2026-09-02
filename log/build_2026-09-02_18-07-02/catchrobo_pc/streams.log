@@ -1,0 +1,34 @@
+[1.040s] Invoking command in '/home/altair/catchrobo2026-pc/src/catchrobo_pc': PYTHONPATH=/home/altair/catchrobo2026-pc/build/catchrobo_pc/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages: /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/catchrobo_pc build --build-base /home/altair/catchrobo2026-pc/build/catchrobo_pc/build install --record /home/altair/catchrobo2026-pc/build/catchrobo_pc/install.log --single-version-externally-managed install_data
+[1.181s] /home/altair/.local/lib/python3.10/site-packages/setuptools/_distutils/dist.py:261: UserWarning: Unknown distribution option: 'tests_require'
+[1.181s]   warnings.warn(msg)
+[1.382s] running egg_info
+[1.399s] writing ../../build/catchrobo_pc/catchrobo_pc.egg-info/PKG-INFO
+[1.399s] writing dependency_links to ../../build/catchrobo_pc/catchrobo_pc.egg-info/dependency_links.txt
+[1.399s] writing entry points to ../../build/catchrobo_pc/catchrobo_pc.egg-info/entry_points.txt
+[1.399s] writing requirements to ../../build/catchrobo_pc/catchrobo_pc.egg-info/requires.txt
+[1.399s] writing top-level names to ../../build/catchrobo_pc/catchrobo_pc.egg-info/top_level.txt
+[1.437s] reading manifest file '../../build/catchrobo_pc/catchrobo_pc.egg-info/SOURCES.txt'
+[1.438s] writing manifest file '../../build/catchrobo_pc/catchrobo_pc.egg-info/SOURCES.txt'
+[1.438s] running build
+[1.438s] running build_py
+[1.438s] copying catchrobo_pc/web_gui_node.py -> /home/altair/catchrobo2026-pc/build/catchrobo_pc/build/lib/catchrobo_pc
+[1.439s] copying catchrobo_pc/debug_node.py -> /home/altair/catchrobo2026-pc/build/catchrobo_pc/build/lib/catchrobo_pc
+[1.439s] copying catchrobo_pc/__init__.py -> /home/altair/catchrobo2026-pc/build/catchrobo_pc/build/lib/catchrobo_pc
+[1.439s] running install
+[1.443s] running install_lib
+[1.460s] running install_data
+[1.460s] copying resource/catchrobo_pc -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/share/ament_index/resource_index/packages
+[1.460s] copying package.xml -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/share/catchrobo_pc
+[1.460s] copying launch/pc.launch.py -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/share/catchrobo_pc/launch
+[1.461s] copying catchrobo_pc/static/css/style.css -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc/static/css
+[1.461s] copying catchrobo_pc/static/js/qrcode.min.js -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc/static/js
+[1.461s] copying catchrobo_pc/static/js/app.js -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc/static/js
+[1.461s] copying catchrobo_pc/static/index.html -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc/static
+[1.461s] running install_egg_info
+[1.479s] removing '/home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages/catchrobo_pc-0.1.0-py3.10.egg-info' (and everything under it)
+[1.480s] Copying ../../build/catchrobo_pc/catchrobo_pc.egg-info to /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages/catchrobo_pc-0.1.0-py3.10.egg-info
+[1.480s] running install_scripts
+[1.612s] Installing debug_node script to /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc
+[1.612s] Installing web_gui_node script to /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc
+[1.612s] writing list of installed files to '/home/altair/catchrobo2026-pc/build/catchrobo_pc/install.log'
+[1.694s] Invoked command in '/home/altair/catchrobo2026-pc/src/catchrobo_pc' returned '0': PYTHONPATH=/home/altair/catchrobo2026-pc/build/catchrobo_pc/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages: /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/catchrobo_pc build --build-base /home/altair/catchrobo2026-pc/build/catchrobo_pc/build install --record /home/altair/catchrobo2026-pc/build/catchrobo_pc/install.log --single-version-externally-managed install_data
