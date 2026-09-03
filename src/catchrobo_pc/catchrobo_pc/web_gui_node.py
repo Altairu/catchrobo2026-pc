@@ -368,9 +368,12 @@ class WebGuiNode(Node):
                     if cs == cs_recv and data_len == data_len_expected and dev_id in dev_ids:
                         deg = [struct.unpack_from('<h', data, i * 2)[0] / 10.0 for i in range(4)]
                         if dev_id == 0x01:
-                            deg[0] = -deg[0]
+                            # M1は機械的向き反転に伴い、受信時の符号反転を解除
                             deg[1] = -deg[1]
                             deg[2] = -deg[2]
+                        elif dev_id == 0x02:
+                            # M1は機械的向き反転に伴い、受信時に符号反転
+                            deg[0] = -deg[0]
                         lsw = [int(v) for v in data[8:12]]
                         self._publish_external_mdd_packet(dev_id, deg, lsw)
                         if dev_id == 0x01:
