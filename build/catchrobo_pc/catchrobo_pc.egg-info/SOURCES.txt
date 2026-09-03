@@ -19,8 +19,11 @@ catchrobo_pc.egg-info/requires.txt
 catchrobo_pc.egg-info/top_level.txt
 catchrobo_pc.egg-info/zip-safe
 catchrobo_pc/static/index.html
+catchrobo_pc/static/mobile.html
+catchrobo_pc/static/css/mobile.css
 catchrobo_pc/static/css/style.css
 catchrobo_pc/static/js/app.js
+catchrobo_pc/static/js/mobile.js
 catchrobo_pc/static/js/qrcode.min.js
 launch/pc.launch.py
 resource/catchrobo_pc

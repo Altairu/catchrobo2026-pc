@@ -25,6 +25,9 @@
         <button id="btn-open-qr" class="btn btn-sm btn-ghost" style="margin-top:8px;width:100%;justify-content:center;gap:6px;font-size:12px;" onclick="openQrModal()">
           <i class="fa-solid fa-qrcode"></i> スマホ接続 QR
         </button>
+        <a href="/mobile" target="_blank" class="btn btn-sm btn-ghost" style="margin-top:4px;width:100%;justify-content:center;gap:6px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;">
+          <i class="fa-solid fa-mobile-screen"></i> スマホ用簡易UI
+        </a>
       </div>
 
       <div class="nav-section">
@@ -571,9 +574,17 @@
           同じWi-Fi/LAN内のスマホやタブレットでQRコードをスキャンするか、表示されたURLをブラウザに入力してください。
         </p>
 
+        <div class="qr-select-group" style="margin-bottom:8px;">
+          <label for="qr-ui-mode"><i class="fa-solid fa-mobile-screen"></i> 画面モード:</label>
+          <select id="qr-ui-mode" onchange="onQrUiModeChange()">
+            <option value="mobile" selected>📱 スマホ用簡易UI (/mobile) [推奨]</option>
+            <option value="full">💻 PC用フル版UI (/)</option>
+          </select>
+        </div>
+
         <div class="qr-select-group">
           <label for="qr-net-select"><i class="fa-solid fa-network-wired"></i> 接続ネットワーク:</label>
-          <select id="qr-net-select" onchange="onQrNetworkChange(this.value)">
+          <select id="qr-net-select" onchange="onQrNetworkChange()">
             <option value="">IPを取得中...</option>
           </select>
         </div>

@@ -110,6 +110,11 @@ class WebGuiNode(Node):
         async def root():
             return FileResponse(str(STATIC_DIR / 'index.html'))
 
+        # スマホ用簡易UI: mobile.html
+        @self.app.get('/mobile')
+        async def mobile():
+            return FileResponse(str(STATIC_DIR / 'mobile.html'))
+
         # REST API: ネットワーク情報（IPアドレス・接続URL）の取得
         @self.app.get('/api/network_info')
         async def network_info():
@@ -293,7 +298,8 @@ class WebGuiNode(Node):
             interfaces.append({
                 'name': label,
                 'ip': ip,
-                'url': f'http://{ip}:{port}'
+                'url': f'http://{ip}:{port}',
+                'mobile_url': f'http://{ip}:{port}/mobile',
             })
 
         return {

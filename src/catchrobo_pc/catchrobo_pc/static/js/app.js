@@ -552,6 +552,16 @@ async function fetchNetworkInfo() {
   }
 }
 
+function getQrEffectiveUrl() {
+  const netSelect = document.getElementById('qr-net-select');
+  const modeSelect = document.getElementById('qr-ui-mode');
+  let baseUrl = (netSelect && netSelect.value) ? netSelect.value : `http://${location.hostname}:8080`;
+  const mode = modeSelect ? modeSelect.value : 'mobile';
+  
+  baseUrl = baseUrl.replace(/\/+$/, '');
+  return (mode === 'mobile') ? `${baseUrl}/mobile` : baseUrl;
+}
+
 function updateNetworkInfoUI(data) {
   state.networkInfo = data;
   const select = document.getElementById('qr-net-select');
@@ -571,14 +581,18 @@ function updateNetworkInfoUI(data) {
     });
   }
 
-  const selectedUrl = select.value || (interfaces[0] ? interfaces[0].url : `http://${location.hostname}:8080`);
-  onQrNetworkChange(selectedUrl);
+  onQrNetworkChange();
 }
 
-function onQrNetworkChange(url) {
+function onQrUiModeChange() {
+  onQrNetworkChange();
+}
+
+function onQrNetworkChange() {
+  const targetUrl = getQrEffectiveUrl();
   const urlInput = document.getElementById('qr-url-input');
-  if (urlInput) urlInput.value = url;
-  renderQrCode(url);
+  if (urlInput) urlInput.value = targetUrl;
+  renderQrCode(targetUrl);
 }
 
 function renderQrCode(url) {

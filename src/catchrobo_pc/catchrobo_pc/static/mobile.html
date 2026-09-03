@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0b0f19">
+  <title>Catchrobo Mobile - 簡易UI</title>
+  <link rel="stylesheet" href="/static/css/mobile.css">
+</head>
+<body>
+
+  <div class="mobile-app">
+    <!-- ═══════════════════════════════════════════════════
+         ヘッダー / ステータスバー
+    ════════════════════════════════════════════════════ -->
+    <header class="mobile-header">
+      <div class="brand">
+        <span class="brand-icon">⚡</span>
+        <span class="brand-name">Catchrobo Mobile</span>
+      </div>
+      <div class="header-actions">
+        <div class="status-indicators">
+          <span id="stat-ws" class="status-dot offline" title="WebSocket">WS</span>
+          <span id="stat-can" class="status-dot offline" title="CAN">CAN</span>
+          <span id="stat-ser" class="status-dot offline" title="Serial">SER</span>
+          <span id="stat-ext" class="status-dot offline" title="External Ctrl">EXT</span>
+        </div>
+        <a href="/" class="btn-switch-full" title="PC向けフル版GUIへ移動">💻 PC版</a>
+      </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════════════════
+         メインクイック操作パネル (最優先)
+    ════════════════════════════════════════════════════ -->
+    <section class="section-controls">
+      <!-- 外部コントローラー トグルカード -->
+      <div class="control-card ext-ctrl-card">
+        <div class="card-header">
+          <span class="card-title">🎮 外部コントローラー</span>
+          <span id="ext-online-badge" class="badge-mini offline">OFFLINE</span>
+        </div>
+        <button id="btn-ext-ctrl" class="btn-ext-toggle off" onclick="toggleExtController()">
+          <div class="btn-ext-icon">⚡</div>
+          <div class="btn-ext-text">
+            <span id="ext-btn-label" class="main-label">外部コントローラ: OFF</span>
+            <span id="ext-port-info" class="sub-label">ポート探索中...</span>
+          </div>
+        </button>
+      </div>
+
+      <!-- ロボマスモーター 制御モード切替 -->
+      <div class="control-card motor-mode-card">
+        <div class="card-header">
+          <span class="card-title">⚙️ ロボマス 制御モード</span>
+          <span id="current-mode-badge" class="badge-mini mode-stop">停止中</span>
+        </div>
+        
+        <div class="mode-action-buttons">
+          <!-- 🛑 停止ボタン -->
+          <button id="btn-mode-stop" class="btn-mode stop active" onclick="setMotorControlMode(0)">
+            <span class="btn-icon">🛑</span>
+            <span class="btn-label">停止</span>
+            <span class="btn-sub">STOP (Mode 0)</span>
+          </button>
+
+          <!-- ⚡ PID 制御ボタン -->
+          <button id="btn-mode-pid" class="btn-mode pid" onclick="setMotorControlMode(1)">
+            <span class="btn-icon">⚡</span>
+            <span class="btn-label">PID 制御</span>
+            <span class="btn-sub">RUN (Mode 1)</span>
+          </button>
+        </div>
+
+        <!-- 補助アクション (全軸0リセット & 開ループ) -->
+        <div class="sub-actions">
+          <button class="btn-sub-action" onclick="resetAllMotors()">
+            🔄 全軸 0° リセット
+          </button>
+          <button id="btn-mode-openloop" class="btn-sub-action" onclick="setMotorControlMode(2)">
+            🔬 開ループ
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════
+         簡易デバッグ・モニタリングパネル
+    ════════════════════════════════════════════════════ -->
+    <section class="section-debug">
+      <!-- ロボマス 6軸角度モニタ -->
+      <div class="debug-card">
+        <div class="debug-card-header">
+          <span class="debug-title">📐 ロボマス 6軸 現在角度</span>
+        </div>
+        <div class="motor-grid">
+          <div class="motor-cell">
+            <span class="m-label">RM1</span>
+            <span id="ang-RM1" class="m-val">+0.0°</span>
+          </div>
+          <div class="motor-cell">
+            <span class="m-label">RM2</span>
+            <span id="ang-RM2" class="m-val">+0.0°</span>
+          </div>
+          <div class="motor-cell">
+            <span class="m-label">LM1</span>
+            <span id="ang-LM1" class="m-val">+0.0°</span>
+          </div>
+          <div class="motor-cell">
+            <span class="m-label">LM2</span>
+            <span id="ang-LM2" class="m-val">+0.0°</span>
+          </div>
+          <div class="motor-cell">
+            <span class="m-label">SM1</span>
+            <span id="ang-SM1" class="m-val">+0.0°</span>
+          </div>
+          <div class="motor-cell">
+            <span class="m-label">LM3</span>
+            <span id="ang-LM3" class="m-val">+0.0°</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 外部コントローラー生データ (MDD1 & MDD2) -->
+      <div class="debug-card">
+        <div class="debug-card-header">
+          <span class="debug-title">🎛️ 外部コントローラ 生データ</span>
+          <span id="ext-rx-age" class="debug-sub">age: 999s</span>
+        </div>
+        
+        <div class="ext-mdd-grid">
+          <!-- MDD1 -->
+          <div class="ext-mdd-col">
+            <div class="col-title">MDD1 (0x01)</div>
+            <div class="deg-row">
+              <span class="d-item">M1:<b id="ext-d1-0">+0.0°</b></span>
+              <span class="d-item">M2:<b id="ext-d1-1">+0.0°</b></span>
+            </div>
+            <div class="deg-row">
+              <span class="d-item">M3:<b id="ext-d1-2">+0.0°</b></span>
+              <span class="d-item">M4:<b id="ext-d1-3">+0.0°</b></span>
+            </div>
+            <div class="sw-row">
+              <span id="ext-sw1-0" class="sw-dot">S1</span>
+              <span id="ext-sw1-1" class="sw-dot">S2</span>
+              <span id="ext-sw1-2" class="sw-dot">S3</span>
+              <span id="ext-sw1-3" class="sw-dot">S4</span>
+            </div>
+          </div>
+
+          <!-- MDD2 -->
+          <div class="ext-mdd-col">
+            <div class="col-title">MDD2 (0x02)</div>
+            <div class="deg-row">
+              <span class="d-item">M1:<b id="ext-d2-0">+0.0°</b></span>
+              <span class="d-item">M2:<b id="ext-d2-1">+0.0°</b></span>
+            </div>
+            <div class="deg-row">
+              <span class="d-item">M3:<b id="ext-d2-2">+0.0°</b></span>
+              <span class="d-item">M4:<b id="ext-d2-3">+0.0°</b></span>
+            </div>
+            <div class="sw-row">
+              <span id="ext-sw2-0" class="sw-dot">S1</span>
+              <span id="ext-sw2-1" class="sw-dot">S2</span>
+              <span id="ext-sw2-2" class="sw-dot">S3</span>
+              <span id="ext-sw2-3" class="sw-dot">S4</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- トースト通知用コンテナ -->
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <script src="/static/js/mobile.js"></script>
+</body>
+</html>
