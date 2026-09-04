@@ -1,1 +1,753 @@
-/home/altair/catchrobo2026-pc/build/catchrobo_pc/catchrobo_pc/static/index.html
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catchrobo 2026 - Robot Controller</title>
+  <meta name="description" content="Catchrobo 2026 統合WebGUI - モジュール制御・ロボマスモーター制御">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+
+  <div id="app">
+    <!-- ═══════════════════════════════════════════════════
+       サイドバー
+  ════════════════════════════════════════════════════ -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <h1>⚡ Catchrobo 2026</h1>
+        <p>Robot Web Controller</p>
+        <div id="can-badge" class="conn-badge offline">CAN: Offline</div>
+        <div id="serial-badge" class="conn-badge offline" style="margin-top:4px">Ser: Offline</div>
+        <button id="btn-open-qr" class="btn btn-sm btn-ghost" style="margin-top:8px;width:100%;justify-content:center;gap:6px;font-size:12px;" onclick="openQrModal()">
+          <i class="fa-solid fa-qrcode"></i> スマホ接続 QR
+        </button>
+        <a href="/mobile" target="_blank" class="btn btn-sm btn-ghost" style="margin-top:4px;width:100%;justify-content:center;gap:6px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;">
+          <i class="fa-solid fa-mobile-screen"></i> スマホ用簡易UI
+        </a>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section-label">メニュー</div>
+        <button class="nav-item active" data-view="view-connection">
+          <span class="icon"><i class="fa-solid fa-plug"></i></span>接続設定
+        </button>
+        <button class="nav-item" data-view="view-modules">
+          <span class="icon"><i class="fa-solid fa-cubes"></i></span>モジュール制御
+        </button>
+        <button class="nav-item" data-view="view-motors">
+          <span class="icon"><i class="fa-solid fa-gear"></i></span>ロボマスモーター
+        </button>
+        <button class="nav-item" data-view="view-monitor">
+          <span class="icon"><i class="fa-solid fa-chart-line"></i></span>システム監視
+        </button>
+        <button class="nav-item" data-view="view-logs">
+          <span class="icon"><i class="fa-solid fa-terminal"></i></span>ログ
+        </button>
+      </div>
+    </aside>
+
+    <!-- ═══════════════════════════════════════════════════
+       メインコンテンツ
+  ════════════════════════════════════════════════════ -->
+    <main class="main">
+
+      <!-- ─── 接続設定ビュー ─────────────────────────── -->
+      <section id="view-connection" class="view active">
+
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">
+              <span class="dot" style="background:var(--accent-can)"></span>
+              USB-CAN ポート (NUC側)
+            </span>
+          </div>
+          <div class="port-section">
+            <label>CAN ポート</label>
+            <div class="port-row">
+              <select id="sel-can-port">
+                <option value="">-- ポートを選択 --</option>
+              </select>
+            </div>
+          </div>
+          <div class="port-section">
+            <label>シリアルモーター ポート</label>
+            <div class="port-row">
+              <select id="sel-serial-port">
+                <option value="">-- ポートを選択 --</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn btn-primary" onclick="applyPorts()">
+              <i class="fa-solid fa-link"></i> ポートを適用
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="addLog('ポートリスト更新を待機中...','info')">
+              <i class="fa-solid fa-rotate"></i> 更新待ち (自動)
+            </button>
+          </div>
+          <p style="margin-top:10px;font-size:11px;color:var(--text-dim)">
+            ※ NUCが起動していればポートリストは自動更新されます。抜き差し後は数秒お待ちください。
+          </p>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">
+              <span class="dot" style="background:var(--success)"></span>
+              接続状態
+            </span>
+          </div>
+          <div class="status-grid">
+            <div class="stat-card">
+              <div class="stat-card-label">CAN TX</div>
+              <div class="stat-card-value" id="stat-can-tx">-</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">CAN RX</div>
+              <div class="stat-card-value" id="stat-can-rx">-</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">CAN ERR</div>
+              <div class="stat-card-value" id="stat-can-err">-</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">Serial TX</div>
+              <div class="stat-card-value" id="stat-serial-tx">-</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">Serial RX</div>
+              <div class="stat-card-value" id="stat-serial-rx">-</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">Serial ERR</div>
+              <div class="stat-card-value" id="stat-serial-err">-</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">
+              <span class="dot" style="background:var(--warning)"></span>
+              外部コントローラ連携 (Serial /dev/ttyACM*)
+            </span>
+            <button id="btn-ext-ctrl-mode" class="btn btn-ghost btn-sm" onclick="toggleExternalControllerMode()">
+              外部コントローラ: OFF
+            </button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono',monospace;font-size:12px">
+              <div id="ext-ctrl-status" style="font-weight:700;color:var(--danger)">MODE: OFF / OFFLINE</div>
+              <div id="ext-ctrl-detail" style="color:var(--text-mono)">PORT: - age:999.00s pkt:0</div>
+            </div>
+            
+            <!-- MDD1 / MDD2 デバッグテーブル -->
+            <table class="ext-debug-table">
+              <thead>
+                <tr>
+                  <th>デバイス</th>
+                  <th>M1</th>
+                  <th>M2</th>
+                  <th>M3</th>
+                  <th>M4</th>
+                  <th>リミットスイッチ</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="font-weight:700;color:var(--accent-can)">MDD1 (0x01)</td>
+                  <td id="ext-mdd1-m1">+0.0°</td>
+                  <td id="ext-mdd1-m2">+0.0°</td>
+                  <td id="ext-mdd1-m3">+0.0°</td>
+                  <td id="ext-mdd1-m4">+0.0°</td>
+                  <td id="ext-mdd1-sw">
+                    <span class="sw-badge off" id="ext-mdd1-sw1">SW1</span>
+                    <span class="sw-badge off" id="ext-mdd1-sw2">SW2</span>
+                    <span class="sw-badge off" id="ext-mdd1-sw3">SW3</span>
+                    <span class="sw-badge off" id="ext-mdd1-sw4">SW4</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="font-weight:700;color:var(--accent-can)">MDD2 (0x02)</td>
+                  <td id="ext-mdd2-m1">+0.0°</td>
+                  <td id="ext-mdd2-m2">+0.0°</td>
+                  <td id="ext-mdd2-m3">+0.0°</td>
+                  <td id="ext-mdd2-m4">+0.0°</td>
+                  <td id="ext-mdd2-sw">
+                    <span class="sw-badge off" id="ext-mdd2-sw1">SW1</span>
+                    <span class="sw-badge off" id="ext-mdd2-sw2">SW2</span>
+                    <span class="sw-badge off" id="ext-mdd2-sw3">SW3</span>
+                    <span class="sw-badge off" id="ext-mdd2-sw4">SW4</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- マッピングガイド -->
+            <div style="font-size:11px;color:var(--text-dim);font-weight:700;margin-top:10px;margin-bottom:-6px">
+              ※ 以下は「MDD1 (0x01)」から実機への制御マッピングです（MDD2データは可視化のみ）
+            </div>
+            <div class="mapping-guide">
+              <div class="mapping-item">
+                <span class="mapping-key">MDD1 M1</span>
+                <span class="mapping-val">RM2 (右車輪)</span>
+              </div>
+              <div class="mapping-item">
+                <span class="mapping-key">MDD1 M2</span>
+                <span class="mapping-val">RM1 (左車輪)</span>
+              </div>
+              <div class="mapping-item">
+                <span class="mapping-key">MDD1 M3</span>
+                <span class="mapping-val">SV_1 V4 (>45°時 ON)</span>
+              </div>
+              <div class="mapping-item">
+                <span class="mapping-key">MDD1 M4</span>
+                <span class="mapping-val">Servo1 CH1 (+90°, 1/10減速)</span>
+              </div>
+              <div class="mapping-item">
+                <span class="mapping-key">MDD1 SW1</span>
+                <span class="mapping-val">SV_1 V3 ON</span>
+              </div>
+              <div class="mapping-item">
+                <span class="mapping-key">MDD1 SW2/3</span>
+                <span class="mapping-val">SM1 (電流±800)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── モジュール制御ビュー ───────────────────── -->
+      <section id="view-modules" class="view">
+
+        <!-- MDD1 -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">
+              <span class="dot" style="background:var(--accent-can)"></span>
+              MDD1 - Motor Driver (0x200)
+            </span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span id="mdd1-mode-str" style="font-size:12px;font-weight:700;color:var(--text-dim)">PARAM MODE</span>
+              <span id="mdd1-sw" style="font-size:11px;color:var(--text-dim)">SW:[0,0,0,0] Err:0</span>
+            </div>
+          </div>
+
+          <!-- エンコーダ表示 -->
+          <div class="enc-row">
+            <div class="enc-cell">
+              <div class="enc-cell-label">M1</div>
+              <div class="enc-cell-value" id="mdd1-enc-0">+0.0°</div>
+            </div>
+            <div class="enc-cell">
+              <div class="enc-cell-label">M2</div>
+              <div class="enc-cell-value" id="mdd1-enc-1">+0.0°</div>
+            </div>
+            <div class="enc-cell">
+              <div class="enc-cell-label">M3</div>
+              <div class="enc-cell-value" id="mdd1-enc-2">+0.0°</div>
+            </div>
+            <div class="enc-cell">
+              <div class="enc-cell-label">M4</div>
+              <div class="enc-cell-value" id="mdd1-enc-3">+0.0°</div>
+            </div>
+          </div>
+
+          <!-- 目標値 -->
+          <div style="margin-top:14px">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+              <div>
+                <label>M1 目標値</label>
+                <input type="number" id="mdd1-target-0" value="0" min="-32767" max="32767"
+                  style="font-family:'JetBrains Mono',monospace">
+              </div>
+              <div>
+                <label>M2 目標値</label>
+                <input type="number" id="mdd1-target-1" value="0" min="-32767" max="32767"
+                  style="font-family:'JetBrains Mono',monospace">
+              </div>
+              <div>
+                <label>M3 目標値</label>
+                <input type="number" id="mdd1-target-2" value="0" min="-32767" max="32767"
+                  style="font-family:'JetBrains Mono',monospace">
+              </div>
+              <div>
+                <label>M4 目標値</label>
+                <input type="number" id="mdd1-target-3" value="0" min="-32767" max="32767"
+                  style="font-family:'JetBrains Mono',monospace">
+              </div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-primary btn-sm" onclick="sendMddTarget('MDD1')">
+                <i class="fa-solid fa-paper-plane"></i> 目標値送信
+              </button>
+              <button class="btn btn-ghost btn-sm" onclick="sendMddParams('MDD1')">
+                <i class="fa-solid fa-upload"></i> パラメータ送信
+              </button>
+            </div>
+          </div>
+
+          <!-- PIDパラメータ (折りたたみ) -->
+          <details style="margin-top:12px">
+            <summary style="cursor:pointer;font-size:12px;color:var(--text-dim);font-weight:600">
+              ▶ PID パラメータ設定 (MDD1)
+            </summary>
+            <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px">
+              <div id="mdd1-params-container" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+                <!-- JSで生成 -->
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <!-- MDD2 -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">
+              <span class="dot" style="background:var(--accent-can)"></span>
+              MDD2 - Motor Driver (0x201)
+            </span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span id="mdd2-mode-str" style="font-size:12px;font-weight:700;color:var(--text-dim)">PARAM MODE</span>
+              <span id="mdd2-sw" style="font-size:11px;color:var(--text-dim)">SW:[0,0,0,0] Err:0</span>
+            </div>
+          </div>
+
+          <!-- エンコーダ表示 -->
+          <div class="enc-row">
+            <div class="enc-cell">
+              <div class="enc-cell-label">M1</div>
+              <div class="enc-cell-value" id="mdd2-enc-0">+0.0°</div>
+            </div>
+            <div class="enc-cell">
+              <div class="enc-cell-label">M2</div>
+              <div class="enc-cell-value" id="mdd2-enc-1">+0.0°</div>
+            </div>
+            <div class="enc-cell">
+              <div class="enc-cell-label">M3</div>
+              <div class="enc-cell-value" id="mdd2-enc-2">+0.0°</div>
+            </div>
+            <div class="enc-cell">
+              <div class="enc-cell-label">M4</div>
+              <div class="enc-cell-value" id="mdd2-enc-3">+0.0°</div>
+            </div>
+          </div>
+
+          <!-- 目標値 -->
+          <div style="margin-top:14px">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+              <div>
+                <label>M1 目標値</label>
+                <input type="number" id="mdd2-target-0" value="0" min="-32767" max="32767"
+                  style="font-family:'JetBrains Mono',monospace">
+              </div>
+              <div>
+                <label>M2 目標値</label>
+                <input type="number" id="mdd2-target-1" value="0" min="-32767" max="32767"
+                  style="font-family:'JetBrains Mono',monospace">
+              </div>
+              <div>
+                <label>M3 目標値</label>
+                <input type="number" id="mdd2-target-2" value="0" min="-32767" max="32767"
+                  style="font-family:'JetBrains Mono',monospace">
+              </div>
+              <div>
+                <label>M4 目標値</label>
+                <input type="number" id="mdd2-target-3" value="0" min="-32767" max="32767"
+                  style="font-family:'JetBrains Mono',monospace">
+              </div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-primary btn-sm" onclick="sendMddTarget('MDD2')">
+                <i class="fa-solid fa-paper-plane"></i> 目標値送信
+              </button>
+              <button class="btn btn-ghost btn-sm" onclick="sendMddParams('MDD2')">
+                <i class="fa-solid fa-upload"></i> パラメータ送信
+              </button>
+            </div>
+          </div>
+
+          <!-- PIDパラメータ (折りたたみ) -->
+          <details style="margin-top:12px">
+            <summary style="cursor:pointer;font-size:12px;color:var(--text-dim);font-weight:600">
+              ▶ PID パラメータ設定 (MDD2)
+            </summary>
+            <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px">
+              <div id="mdd2-params-container" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+                <!-- JSで生成 -->
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <!-- SV_1 -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">
+              <span class="dot" style="background:var(--accent-sv)"></span>
+              SV_1 - Solenoid Valve (0x300)
+            </span>
+            <button class="btn btn-ghost btn-sm" onclick="resetSv('SV_1')">
+              <i class="fa-solid fa-xmark"></i> 全OFF
+            </button>
+          </div>
+          <div class="valve-grid" id="valve-grid-SV_1">
+            <!-- JSで生成 -->
+          </div>
+        </div>
+
+        <!-- SV_2 -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">
+              <span class="dot" style="background:var(--accent-sv)"></span>
+              SV_2 - Solenoid Valve (0x301)
+            </span>
+            <button class="btn btn-ghost btn-sm" onclick="resetSv('SV_2')">
+              <i class="fa-solid fa-xmark"></i> 全OFF
+            </button>
+          </div>
+          <div class="valve-grid" id="valve-grid-SV_2">
+            <!-- JSで生成 -->
+          </div>
+        </div>
+
+        <!-- Servo1 -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">
+              <span class="dot" style="background:var(--accent-servo)"></span>
+              Servo1 - Servo Motor (0x100)
+            </span>
+            <button class="btn btn-ghost btn-sm" onclick="resetServo1()">
+              <i class="fa-solid fa-rotate-left"></i> 全センター (90°)
+            </button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px" id="servo-grid-Servo1">
+            <!-- JSで生成 -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── ロボマスモータービュー ─────────────────── -->
+      <section id="view-motors" class="view">
+
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">
+              <span class="dot" style="background:var(--accent-motor)"></span>
+              制御モード
+            </span>
+            <button class="btn btn-danger btn-sm" onclick="resetAllMotors()">
+              <i class="fa-solid fa-stop"></i> 全軸ゼロ
+            </button>
+          </div>
+          <div class="mode-pills">
+            <button class="mode-pill active" onclick="setMotorMode(0)">■ 停止</button>
+            <button class="mode-pill" onclick="setMotorMode(1)">⟳ PID制御</button>
+            <button class="mode-pill" onclick="setMotorMode(2)">⚡ 同定(開ループ)</button>
+          </div>
+        </div>
+
+        <!-- フィードバック表示 -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">
+              <span class="dot" style="background:var(--accent-motor)"></span>
+              フィードバック (MCU → NUC)
+            </span>
+          </div>
+          <div class="motor-fb-grid">
+            <div class="motor-fb-cell">
+              <div class="motor-fb-name">RM1</div>
+              <div class="motor-fb-angle" id="fb-ang-RM1">+0.0°</div>
+              <div class="motor-fb-rpm" id="fb-rpm-RM1">-- rpm</div>
+            </div>
+            <div class="motor-fb-cell">
+              <div class="motor-fb-name">RM2</div>
+              <div class="motor-fb-angle" id="fb-ang-RM2">+0.0°</div>
+              <div class="motor-fb-rpm" id="fb-rpm-RM2">-- rpm</div>
+            </div>
+            <div class="motor-fb-cell">
+              <div class="motor-fb-name">LM1</div>
+              <div class="motor-fb-angle" id="fb-ang-LM1">+0.0°</div>
+              <div class="motor-fb-rpm" style="display:none"></div>
+            </div>
+            <div class="motor-fb-cell">
+              <div class="motor-fb-name">LM2</div>
+              <div class="motor-fb-angle" id="fb-ang-LM2">+0.0°</div>
+              <div class="motor-fb-rpm" style="display:none"></div>
+            </div>
+            <div class="motor-fb-cell">
+              <div class="motor-fb-name">SM1</div>
+              <div class="motor-fb-angle" id="fb-ang-SM1">+0.0°</div>
+              <div class="motor-fb-rpm" style="display:none"></div>
+            </div>
+            <div class="motor-fb-cell">
+              <div class="motor-fb-name">LM3</div>
+              <div class="motor-fb-angle" id="fb-ang-LM3">+0.0°</div>
+              <div class="motor-fb-rpm" style="display:none"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 目標値スライダー -->
+        <div class="panel" id="motor-sliders-panel">
+          <!-- JSで生成 -->
+        </div>
+      </section>
+
+      <!-- ─── システム監視ビュー ─────────────────────── -->
+      <section id="view-monitor" class="view">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">
+              <span class="dot" style="background:var(--primary)"></span>
+              システム統計
+            </span>
+          </div>
+          <div class="status-grid">
+            <div class="stat-card">
+              <div class="stat-card-label">制御モード</div>
+              <div class="stat-card-value" id="stat-ctrl-mode">STOP</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">CAN TX / RX</div>
+              <div class="stat-card-value" style="font-size:16px">
+                <span id="stat-can-tx2">-</span> / <span id="stat-can-rx2">-</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">Serial TX / RX</div>
+              <div class="stat-card-value" style="font-size:16px">
+                <span id="stat-serial-tx2">-</span> / <span id="stat-serial-rx2">-</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">MDD1 モード</div>
+              <div class="stat-card-value" id="stat-mdd1-mode" style="font-size:16px">-</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── ログビュー ─────────────────────────────── -->
+      <section id="view-logs" class="view">
+        <div class="panel" style="flex:1">
+          <div class="panel-header">
+            <span class="panel-title">
+              <span class="dot" style="background:var(--info)"></span>
+              システムログ
+            </span>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('log-box').innerHTML=''">
+              <i class="fa-solid fa-eraser"></i> クリア
+            </button>
+          </div>
+          <div class="log-box" id="log-box"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- 全画面ボタン -->
+  <button id="btn-fullscreen" title="全画面切り替え">⛶</button>
+
+  <!-- WebSocket インジケーター -->
+  <div id="ws-indicator" class="disconnected">
+    <span>WebSocket 切断</span>
+  </div>
+
+  <!-- 📱 QRコード モーダル -->
+  <div id="qr-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this) closeQrModal()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-qrcode" style="color:var(--primary)"></i> スマホ・タブレット接続</h3>
+        <button class="btn-close" onclick="closeQrModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">
+          同じWi-Fi/LAN内のスマホやタブレットでQRコードをスキャンするか、表示されたURLをブラウザに入力してください。
+        </p>
+
+        <div class="qr-select-group" style="margin-bottom:8px;">
+          <label for="qr-ui-mode"><i class="fa-solid fa-mobile-screen"></i> 画面モード:</label>
+          <select id="qr-ui-mode" onchange="onQrUiModeChange()">
+            <option value="mobile" selected>📱 スマホ用簡易UI (/mobile) [推奨]</option>
+            <option value="full">💻 PC用フル版UI (/)</option>
+          </select>
+        </div>
+
+        <div class="qr-select-group">
+          <label for="qr-net-select"><i class="fa-solid fa-network-wired"></i> 接続ネットワーク:</label>
+          <select id="qr-net-select" onchange="onQrNetworkChange()">
+            <option value="">IPを取得中...</option>
+          </select>
+        </div>
+
+        <div class="qr-code-wrapper">
+          <div id="qrcode-box"></div>
+        </div>
+
+        <div class="qr-url-box">
+          <input type="text" id="qr-url-input" readonly value="http://localhost:8080">
+          <button class="btn btn-primary btn-sm" onclick="copyQrUrl()">
+            <i class="fa-solid fa-copy"></i> URLコピー
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/qrcode.min.js"></script>
+  <script src="/static/js/app.js?v=3"></script>
+  <script>
+    // ─── 動的UI生成 (DOMContentLoaded後) ────────────────────
+
+    document.addEventListener('DOMContentLoaded', () => {
+
+      // ── モーターコントロールスライダー生成 ──────────────
+      const sliderPanel = document.getElementById('motor-sliders-panel');
+      if (sliderPanel) {
+        sliderPanel.innerHTML = `
+      <div class="panel-header">
+        <span class="panel-title">
+          <span class="dot" style="background:var(--accent-motor)"></span>
+          目標値コントロール
+        </span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${state.motorConfig.map((cfg, i) => `
+          <div class="slider-row">
+            <span class="slider-label">${cfg.name}</span>
+            <input type="range"
+              id="motor-slider-${i}"
+              min="${cfg.min}" max="${cfg.max}" step="0.5" value="0"
+              >
+            <div style="display:flex;gap:4px;align-items:center">
+              <input type="number"
+                id="motor-num-${i}"
+                min="${cfg.min}" max="${cfg.max}" step="0.5" value="0"
+                style="width:70px;font-family:'JetBrains Mono',monospace;font-size:13px"
+                >
+              <button class="btn btn-ghost btn-sm" onclick="resetMotor(${i})" style="padding:4px 6px">↺</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+        for (let i = 0; i < state.motorConfig.length; i++) {
+          const sl = document.getElementById(`motor-slider-${i}`);
+          const num = document.getElementById(`motor-num-${i}`);
+          sl?.addEventListener('input', () => setMotorTarget(i, sl.value));
+          num?.addEventListener('input', () => setMotorTarget(i, num.value));
+        }
+      }
+
+      // ── バルブグリッド生成 (SV_1 / SV_2) ───────────────
+      ['SV_1', 'SV_2'].forEach(svName => {
+        const grid = document.getElementById(`valve-grid-${svName}`);
+        if (!grid) return;
+        grid.innerHTML = Array.from({ length: 12 }, (_, i) => `
+      <button class="valve-btn" id="valve-${svName}-${i}"
+              onclick="toggleValve('${svName}', ${i})">
+        <span class="v-num">V${i + 1}</span>
+        <span class="v-st">OFF</span>
+      </button>
+    `).join('');
+      });
+
+      // ── サーボUI生成 (Servo1) ───────────────
+      const servoGrid = document.getElementById('servo-grid-Servo1');
+      if (servoGrid) {
+        servoGrid.innerHTML = Array.from({ length: 6 }, (_, i) => `
+          <div class="slider-row">
+            <span class="slider-label">CH${i + 1}</span>
+            <input type="range"
+              id="servo-slider-${i}"
+              min="0" max="180" step="1" value="90"
+              >
+            <div style="display:flex;gap:4px;align-items:center">
+              <input type="number"
+                id="servo-num-${i}"
+                min="0" max="180" step="1" value="90"
+                style="width:70px;font-family:'JetBrains Mono',monospace;font-size:13px"
+                >
+              <button class="btn btn-ghost btn-sm" onclick="resetServoSingle(${i})" style="padding:4px 6px">90</button>
+            </div>
+          </div>
+        `).join('');
+
+        for (let i = 0; i < 6; i++) {
+          const sl = document.getElementById(`servo-slider-${i}`);
+          const num = document.getElementById(`servo-num-${i}`);
+          sl?.addEventListener('input', () => setServoTarget(i, sl.value));
+          num?.addEventListener('input', () => setServoTarget(i, num.value));
+        }
+      }
+
+      // ── MDD PIDパラメータUI生成 ─────────────────────────
+      ['MDD1', 'MDD2'].forEach(name => {
+        const isMdd1 = (name === 'MDD1');
+        const containerId = isMdd1 ? 'mdd1-params-container' : 'mdd2-params-container';
+        const pidContainer = document.getElementById(containerId);
+        if (pidContainer) {
+          pidContainer.innerHTML = Array.from({ length: 4 }, (_, i) => `
+        <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px">
+          <div style="font-size:12px;font-weight:700;color:var(--accent-can);margin-bottom:8px">M${i + 1}</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+            <div><label>P Gain</label>
+              <input type="number" value="10" step="0.1"
+                onchange="updateMddParam('${name}',${i},'p',this.value)"
+                style="font-family:'JetBrains Mono',monospace">
+            </div>
+            <div><label>I Gain</label>
+              <input type="number" value="0" step="0.1"
+                onchange="updateMddParam('${name}',${i},'i',this.value)"
+                style="font-family:'JetBrains Mono',monospace">
+            </div>
+            <div><label>D Gain</label>
+              <input type="number" value="0" step="0.1"
+                onchange="updateMddParam('${name}',${i},'d',this.value)"
+                style="font-family:'JetBrains Mono',monospace">
+            </div>
+            <div><label>Mode</label>
+              <select onchange="updateMddParam('${name}',${i},'mode',this.value)">
+                <option value="0">Speed</option>
+                <option value="1">Angle</option>
+                <option value="2">Pos</option>
+              </select>
+            </div>
+            <div><label>Wheel(mm)</label>
+              <input type="number" value="65" step="1"
+                onchange="updateMddParam('${name}',${i},'wheel',this.value)"
+                style="font-family:'JetBrains Mono',monospace">
+            </div>
+            <div><label>Dir</label>
+              <select onchange="updateMddParam('${name}',${i},'dir',this.value)">
+                <option value="1">+ Norm</option>
+                <option value="-1">- Rev</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      `).join('');
+        }
+      });
+    });
+
+    // SV全OFFヘルパー
+    function resetSv(svName) {
+      if (svName === 'SV_1') { state.sv1Valves = 0; renderValves('SV_1', 0); }
+      else { state.sv2Valves = 0; renderValves('SV_2', 0); }
+      sendWs({ cmd: 'module_cmd', payload: { type: 'solenoid', name: svName, action: 'set_valves', valves: 0 } });
+    }
+  </script>
+</body>
+
+</html>

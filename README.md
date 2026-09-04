@@ -64,6 +64,8 @@ catchrobo2026-pc/
 - `M2(deg)` → `RM1` 目標値 (`/catchrobo/motor_cmd[0]`)
 - `M3(deg)` > 45.0 のとき `SV_1` の `CH4` (bit3) を ON、45.0 以下で OFF
 - `SW1` ON のとき `SV_1` の `CH3` (bit2) を ON
+- `SW2` ON のとき `SM1` 電流指令値 `-2000.0` (-2.0A)
+- `SW3` ON のとき `SM1` 電流指令値 `+2000.0` (+2.0A)
 
 **MDD2:**
 - `M1(deg)` → `LM2` 目標値 (反転, `/catchrobo/motor_cmd[3]`)

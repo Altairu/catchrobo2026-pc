@@ -1,1 +1,530 @@
-/home/altair/catchrobo2026-pc/build/catchrobo_pc/catchrobo_pc/static/css/mobile.css
+/* ═══════════════════════════════════════════════════════
+   mobile.css - Catchrobo Mobile 簡易UIスタイル
+   ════════════════════════════════════════════════════ */
+
+:root {
+  --bg-main: #0b0f19;
+  --bg-card: rgba(22, 30, 49, 0.85);
+  --bg-card-border: rgba(255, 255, 255, 0.08);
+  --bg-input: #111827;
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --primary: #38bdf8;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --accent: #818cf8;
+
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 14px;
+  line-height: 1.4;
+  overflow-x: hidden;
+  min-height: 100vh;
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+
+.mobile-app {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── ヘッダー ────────────────────────────────────────── */
+.mobile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--bg-card-border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.brand-icon {
+  font-size: 1.2rem;
+}
+
+.brand-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #38bdf8, #818cf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-indicators {
+  display: flex;
+  gap: 4px;
+}
+
+.status-dot {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.status-dot.online {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.status-dot.offline {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.btn-switch-full {
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  border: 1px solid var(--bg-card-border);
+  transition: background 0.2s;
+}
+
+.btn-switch-full:active {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* ── クイック操作カード ─────────────────────────────── */
+.section-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.control-card {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-card-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.badge-mini {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+
+.badge-mini.online {
+  background: rgba(16, 185, 129, 0.25);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.badge-mini.offline {
+  background: rgba(100, 116, 139, 0.25);
+  color: var(--text-muted);
+  border: 1px solid rgba(100, 116, 139, 0.3);
+}
+
+.badge-mini.mode-stop {
+  background: rgba(239, 68, 68, 0.25);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.badge-mini.mode-pid {
+  background: rgba(56, 189, 248, 0.25);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+}
+
+/* 外部コントローラー トグルボタン */
+.btn-ext-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-ext-toggle:active {
+  transform: scale(0.98);
+}
+
+.btn-ext-toggle.off {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.btn-ext-toggle.off .btn-ext-icon {
+  background: rgba(100, 116, 139, 0.3);
+  color: var(--text-muted);
+}
+
+.btn-ext-toggle.off .main-label {
+  color: var(--text-secondary);
+}
+
+.btn-ext-toggle.on {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.35));
+  border-color: rgba(16, 185, 129, 0.6);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.3);
+}
+
+.btn-ext-toggle.on .btn-ext-icon {
+  background: #10b981;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
+}
+
+.btn-ext-toggle.on .main-label {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.btn-ext-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.btn-ext-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.btn-ext-text .main-label {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.btn-ext-text .sub-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+/* モード切替ボタン (2連大型) */
+.mode-action-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.btn-mode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 8px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  outline: none;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-mode:active {
+  transform: scale(0.96);
+}
+
+.btn-mode .btn-icon {
+  font-size: 1.6rem;
+  margin-bottom: 4px;
+}
+
+.btn-mode .btn-label {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.btn-mode .btn-sub {
+  font-size: 10px;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+/* 停止ボタン */
+.btn-mode.stop {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.btn-mode.stop.active {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.35), rgba(185, 28, 28, 0.45));
+  border-color: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.4);
+}
+
+/* PID制御ボタン */
+.btn-mode.pid {
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.btn-mode.pid.active {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.35), rgba(14, 165, 233, 0.45));
+  border-color: #38bdf8;
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
+}
+
+/* 補助アクション */
+.sub-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-sub-action {
+  flex: 1;
+  padding: 8px 6px;
+  border-radius: 8px;
+  border: 1px solid var(--bg-card-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.btn-sub-action:active {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.btn-sub-action.active {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
+/* ── デバッグパネル ──────────────────────────────────── */
+.section-debug {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.debug-card {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-card-border);
+  border-radius: 12px;
+  padding: 8px 10px;
+}
+
+.debug-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.debug-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.debug-sub {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+/* ロボマス 6軸グリッド (3列×2行) */
+.motor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.motor-cell {
+  background: var(--bg-input);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.motor-cell .m-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.motor-cell .m-val {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: monospace;
+  color: #38bdf8;
+}
+
+/* 外部コントローラー生データグリッド */
+.ext-mdd-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.ext-mdd-col {
+  background: var(--bg-input);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.col-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--primary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 2px;
+  margin-bottom: 2px;
+}
+
+.deg-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.d-item b {
+  font-family: monospace;
+  color: var(--text-primary);
+  font-size: 11px;
+}
+
+.sw-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+
+.sw-dot {
+  font-size: 8px;
+  font-weight: 700;
+  padding: 1px 3px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+}
+
+.sw-dot.on {
+  background: #10b981;
+  color: #ffffff;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+.sw-dot.off {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+}
+
+/* ── トースト通知 ────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  opacity: 0;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1000;
+  white-space: nowrap;
+}
+
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}

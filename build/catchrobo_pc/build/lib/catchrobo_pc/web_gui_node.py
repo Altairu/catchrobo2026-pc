@@ -110,6 +110,11 @@ class WebGuiNode(Node):
         async def root():
             return FileResponse(str(STATIC_DIR / 'index.html'))
 
+        # スマホ用簡易UI: mobile.html
+        @self.app.get('/mobile')
+        async def mobile():
+            return FileResponse(str(STATIC_DIR / 'mobile.html'))
+
         # REST API: ネットワーク情報（IPアドレス・接続URL）の取得
         @self.app.get('/api/network_info')
         async def network_info():
@@ -293,7 +298,8 @@ class WebGuiNode(Node):
             interfaces.append({
                 'name': label,
                 'ip': ip,
-                'url': f'http://{ip}:{port}'
+                'url': f'http://{ip}:{port}',
+                'mobile_url': f'http://{ip}:{port}/mobile',
             })
 
         return {
@@ -368,9 +374,12 @@ class WebGuiNode(Node):
                     if cs == cs_recv and data_len == data_len_expected and dev_id in dev_ids:
                         deg = [struct.unpack_from('<h', data, i * 2)[0] / 10.0 for i in range(4)]
                         if dev_id == 0x01:
-                            deg[0] = -deg[0]
+                            # M1は機械的向き反転に伴い、受信時の符号反転を解除
                             deg[1] = -deg[1]
                             deg[2] = -deg[2]
+                        elif dev_id == 0x02:
+                            # M1は機械的向き反転に伴い、受信時に符号反転
+                            deg[0] = -deg[0]
                         lsw = [int(v) for v in data[8:12]]
                         self._publish_external_mdd_packet(dev_id, deg, lsw)
                         if dev_id == 0x01:
@@ -486,11 +495,11 @@ class WebGuiNode(Node):
             sw2_on = (mdd1_lsw[1] == 0)
             sw3_on = (mdd1_lsw[2] == 0)
 
-            # SW2がONのとき電流指令値+2000(2.0A)、SW3がONのとき-2000(-2.0A)、それ以外は停止(0)
+            # SW2がONのとき電流指令値-2000(-2.0A)、SW3がONのとき+2000(2.0A)、それ以外は停止(0)
             if sw2_on and not sw3_on:
-                targets[4] = 2000.0
-            elif sw3_on and not sw2_on:
                 targets[4] = -2000.0
+            elif sw3_on and not sw2_on:
+                targets[4] = 2000.0
             else:
                 targets[4] = 0.0
 
