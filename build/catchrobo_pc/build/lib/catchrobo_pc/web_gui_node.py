@@ -79,6 +79,18 @@ class WebGuiNode(Node):
         self._servo1_targets_cache = [90] * 6
         self._servo1_ch6_last_update = 0.0
 
+        # MDD1 (0x200) 自動パラメータ設定 & シーケンス制御状態
+        self._mdd1_app_mode = 0  # 0: PARAM MODE, 1: CTRL MODE
+        self._mdd1_mode_event = threading.Event()
+        self._mdd1_seq_running = False
+        self._mdd1_seq_cancel_event = threading.Event()
+        self._mdd1_seq_thread = None
+
+        # ロボマスモーター制御モード (0: STOP, 1: PID, 2: OpenLoop) & SM1連動状態
+        self._robotmas_control_mode = 0
+        self._last_sm1_target = None
+        self._mdd1_param_configuring = False
+
         # ─── ROS2 パブリッシャー ──────────────────────
         self.pub_motor_cmd  = self.create_publisher(Float32MultiArray, '/catchrobo/motor_cmd',  10)
         self.pub_motor_mode = self.create_publisher(String,            '/catchrobo/motor_mode', 10)
@@ -159,8 +171,15 @@ class WebGuiNode(Node):
 
             elif cmd == 'motor_mode':
                 # 制御モード切り替え
+                mode = int(data.get('mode', 0))
+                prev_mode = self._robotmas_control_mode
+                self._robotmas_control_mode = mode
+                if mode == 1 and prev_mode != 1:
+                    # ロボマスがPIDモードに入った時、MDD1がパラメータ設定モードなら自動設定
+                    if self._mdd1_app_mode == 0 and not self._mdd1_param_configuring and not self._mdd1_seq_running:
+                        threading.Thread(target=self._configure_mdd1_params, daemon=True).start()
                 msg = String()
-                msg.data = json.dumps({'mode': int(data.get('mode', 0))})
+                msg.data = json.dumps({'mode': mode})
                 self.pub_motor_mode.publish(msg)
 
             elif cmd == 'module_cmd':
@@ -190,9 +209,16 @@ class WebGuiNode(Node):
             elif cmd == 'ext_ctrl_mode':
                 enabled = bool(data.get('enabled', False))
                 with self._external_lock:
+                    prev_enabled = self._external_ctrl_enabled
                     self._external_ctrl_enabled = enabled
                 self.get_logger().info(f'外部コントローラモード: {"ON" if enabled else "OFF"}')
                 self._publish_external_status()
+
+                # 外部コントローラー ON 移行時にMDD1自動設定＆シーケンス開始
+                if enabled and not prev_enabled:
+                    self._start_mdd1_auto_sequence()
+                elif not enabled and prev_enabled:
+                    self._cancel_mdd1_auto_sequence()
 
             elif cmd == 'ext_ctrl_get_status':
                 self._publish_external_status()
@@ -225,21 +251,44 @@ class WebGuiNode(Node):
         data = json.loads(msg.data)
         try:
             mdd1 = data.get('modules', {}).get('MDD1')
-            if mdd1 and 'enc_deg' in mdd1:
-                deg = mdd1['enc_deg']
-                if len(deg) >= 3:
-                    deg[0] = -deg[0]
-                    deg[1] = -deg[1]
-                    deg[2] = -deg[2]
+            if mdd1:
+                app_mode = int(mdd1.get('app_mode', 0))
+                self._mdd1_app_mode = app_mode
+                if app_mode == 1:
+                    self._mdd1_mode_event.set()
+                else:
+                    self._mdd1_mode_event.clear()
+
+                if 'enc_deg' in mdd1:
+                    deg = mdd1['enc_deg']
+                    if len(deg) >= 3:
+                        deg[0] = -deg[0]
+                        deg[1] = -deg[1]
+                        deg[2] = -deg[2]
         except Exception:
             pass
         self._broadcast_sync({'type': 'can_status', 'data': data})
 
     def _on_serial_status(self, msg: String):
-        self._broadcast_sync({'type': 'serial_status', 'data': json.loads(msg.data)})
+        data = json.loads(msg.data)
+        ctrl_mode = int(data.get('control_mode', 0))
+        prev_mode = self._robotmas_control_mode
+        self._robotmas_control_mode = ctrl_mode
+        if ctrl_mode == 1 and prev_mode != 1:
+            # ロボマスがPIDモードに入った時、MDD1がパラメータ設定モードなら自動設定
+            if self._mdd1_app_mode == 0 and not self._mdd1_param_configuring and not self._mdd1_seq_running:
+                threading.Thread(target=self._configure_mdd1_params, daemon=True).start()
+        self._broadcast_sync({'type': 'serial_status', 'data': data})
 
     def _on_motor_fb(self, msg: Float32MultiArray):
-        self._broadcast_sync({'type': 'motor_fb', 'data': list(msg.data)})
+        data = list(msg.data)
+        self._broadcast_sync({'type': 'motor_fb', 'data': data})
+
+        # ロボマスモーターがPIDモード(1)、かつ外部コントローラーONシーケンス中でない場合、
+        # SM1 (data[4]) のエンコーダー値をMDD1 M1目標値に連動させる
+        if len(data) >= 5 and self._robotmas_control_mode == 1 and not self._mdd1_seq_running:
+            sm1_deg = data[4]
+            self._handle_sm1_mdd1_tracking(sm1_deg)
 
     def _on_available_ports(self, msg: String):
         self._broadcast_sync({'type': 'available_ports', 'data': json.loads(msg.data)})
@@ -663,6 +712,186 @@ class WebGuiNode(Node):
 
         self._publish_external_status()
 
+    # ─────────────────────────────────────────────────
+    # MDD1 (0x200) 自動パラメータ設定 & シーケンス制御
+    # ─────────────────────────────────────────────────
+
+    def _broadcast_log(self, message: str, level: str = 'info'):
+        """Web GUIのログボックスへメッセージを配信する"""
+        self._broadcast_sync({'type': 'log', 'message': message, 'level': level})
+
+    def _send_mdd1_target_cmd(self, targets: list[int | float]):
+        """MDD1 (0x200) の目標値を送信する (GUI基準の座標系: M1〜M3を反転してCANへ送る)"""
+        t = [int(v) for v in targets[:4]]
+        while len(t) < 4:
+            t.append(0)
+
+        # GUIからのMDD1送信仕様に準拠した符号反転
+        can_targets = list(t)
+        if len(can_targets) >= 3:
+            can_targets[0] = -can_targets[0]
+            can_targets[1] = -can_targets[1]
+            can_targets[2] = -can_targets[2]
+
+        msg = String()
+        msg.data = json.dumps({
+            'type': 'mdd',
+            'name': 'MDD1',
+            'action': 'set_target',
+            'targets': can_targets,
+        })
+        self.pub_module_cmd.publish(msg)
+
+        # Web GUI側の入力欄にも同期配信
+        self._broadcast_sync({
+            'type': 'mdd1_target_sync',
+            'targets': t,
+        })
+
+    def _configure_mdd1_params(self) -> bool:
+        """MDD1が未設定(app_mode == 0)の場合にパラメータを送信して制御モード(app_mode == 1)への移行を待機する"""
+        if self._mdd1_app_mode == 1:
+            return True
+
+        if self._mdd1_param_configuring:
+            return False
+
+        self._mdd1_param_configuring = True
+        try:
+            self.get_logger().info('MDD1 パラメータ設定送信中 (P=10, I=0, D=0, Angle, Wheel=65, Dir=+)...')
+            self._broadcast_log('MDD1: パラメータ設定送信中 (P=10, I=0, D=0, Angle, Wheel=65, Dir=+)', 'info')
+
+            # M1〜M4に対してパラメータを設定 (P=10, I=0, D=0, MODE=Angle(1), Wheel=65, DIR=+(1))
+            for idx in range(4):
+                param_msg = String()
+                param_msg.data = json.dumps({
+                    'type': 'mdd',
+                    'name': 'MDD1',
+                    'action': 'set_params',
+                    'motor_idx': idx,
+                    'p': 10.0,
+                    'i': 0.0,
+                    'd': 0.0,
+                    'wheel': 65,
+                    'mode': 1,  # 1: Angle
+                    'dir': 1,   # 1: + Norm
+                })
+                self.pub_module_cmd.publish(param_msg)
+                time.sleep(0.02)
+
+            # パラメータ送信要求 (send_params)
+            send_msg = String()
+            send_msg.data = json.dumps({
+                'type': 'mdd',
+                'name': 'MDD1',
+                'action': 'send_params',
+            })
+            self.pub_module_cmd.publish(send_msg)
+
+            # 制御モード (app_mode == 1) への移行を待機 (タイムアウト5秒)
+            start_wait = time.time()
+            while time.time() - start_wait < 5.0:
+                if self._mdd1_seq_cancel_event.is_set():
+                    self.get_logger().info('MDD1 制御モード待機中にキャンセルされました')
+                    return False
+                if self._mdd1_mode_event.wait(timeout=0.1):
+                    self.get_logger().info('MDD1 制御モード移行確認完了')
+                    self._broadcast_log('MDD1: 制御モード移行確認完了', 'success')
+                    return True
+
+            self.get_logger().warn('MDD1 制御モード移行タイムアウト (CAN未応答またはオフライン)')
+            self._broadcast_log('MDD1: 制御モード移行タイムアウト', 'warn')
+            return False
+        finally:
+            self._mdd1_param_configuring = False
+
+    def _handle_sm1_mdd1_tracking(self, sm1_deg: float):
+        """SM1エンコーダー値をMDD1 M1目標値に連動させる"""
+        # MDD1がまだパラメータ設定モードなら、パラメータ設定を発行
+        if self._mdd1_app_mode == 0:
+            if not self._mdd1_param_configuring:
+                threading.Thread(target=self._configure_mdd1_params, daemon=True).start()
+            return
+
+        # 制御モードの場合、目標値を送信 (符号反転して5倍)
+        target_val = int(round(-float(sm1_deg) * 5.0))
+        if self._last_sm1_target != target_val:
+            self._last_sm1_target = target_val
+            self._send_mdd1_target_cmd([target_val, 0, 0, 0])
+
+    def _start_mdd1_auto_sequence(self):
+        """外部コントローラーON時のMDD1パラメータ設定および動作シーケンスを非同期で開始する"""
+        if self._mdd1_seq_running:
+            self.get_logger().warn('MDD1自動シーケンスは既に実行中です')
+            return
+
+        self._mdd1_seq_cancel_event.clear()
+        self._mdd1_seq_thread = threading.Thread(target=self._mdd1_auto_sequence_worker, daemon=True)
+        self._mdd1_seq_thread.start()
+
+    def _cancel_mdd1_auto_sequence(self):
+        """外部コントローラーOFF時に実行中のMDD1自動シーケンスを中断し、M1を安全停止(0)にする"""
+        if self._mdd1_seq_running:
+            self.get_logger().info('外部コントローラーOFF検知: MDD1シーケンスを中断して停止します')
+            self._mdd1_seq_cancel_event.set()
+            self._send_mdd1_target_cmd([0, 0, 0, 0])
+            self._broadcast_log('外部コントローラーOFF: MDD1シーケンス中断 (目標値: 0)', 'warn')
+
+    def _mdd1_auto_sequence_worker(self):
+        """MDD1パラメータ設定 & M1動作シーケンスを実行するワーカースレッド"""
+        self._mdd1_seq_running = True
+        self.get_logger().info('MDD1 自動設定・シーケンススレッド開始')
+        self._broadcast_log('外部コントローラーON: MDD1初期化シーケンス開始', 'info')
+
+        try:
+            # 1. パラメータ設定が必要か確認 (app_mode == 0: PARAM MODE, 1: CTRL MODE)
+            if self._mdd1_app_mode == 1:
+                self.get_logger().info('MDD1 は既に制御モード(設定済み)です。パラメータ設定をスキップします。')
+                self._broadcast_log('MDD1: 既に制御モードのためパラメータ設定スキップ', 'info')
+            else:
+                configured = self._configure_mdd1_params()
+                if not configured:
+                    self.get_logger().warn('MDD1 制御モード移行に失敗したためシーケンスを中止します')
+                    return
+
+            # 2. M1 動作シーケンスの実行
+            # M1 目標値: -500 (1s) -> 500 (1s) -> -500 (1s) -> 500 (1s) -> 0 (終了)
+            steps = [
+                (-500, 1.0),
+                (500,  1.0),
+                (-500, 1.0),
+                (500,  1.0),
+                (0,    0.0),
+            ]
+
+            for val, wait_sec in steps:
+                if self._mdd1_seq_cancel_event.is_set():
+                    self.get_logger().info('MDD1 動作シーケンス中断')
+                    return
+
+                # 目標値送信
+                self._send_mdd1_target_cmd([val, 0, 0, 0])
+                msg_txt = f'MDD1 M1 目標値: {val} ({"終了" if wait_sec == 0 else f"{wait_sec}秒待機"})'
+                self.get_logger().info(msg_txt)
+                self._broadcast_log(msg_txt, 'info' if wait_sec > 0 else 'success')
+
+                if wait_sec > 0:
+                    # キャンセル検知付きスリープ
+                    if self._mdd1_seq_cancel_event.wait(timeout=wait_sec):
+                        self.get_logger().info('待機中にシーケンス中断検知')
+                        self._send_mdd1_target_cmd([0, 0, 0, 0])
+                        return
+
+            self.get_logger().info('MDD1 M1 動作シーケンス正常終了 (目標値: 0)')
+            self._broadcast_log('MDD1 M1 動作シーケンス完了 (目標値: 0)', 'success')
+
+        except Exception as e:
+            self.get_logger().error(f'MDD1 自動シーケンス実行エラー: {e}')
+            self._broadcast_log(f'MDD1 シーケンスエラー: {e}', 'error')
+        finally:
+            self._mdd1_seq_running = False
+            self._last_sm1_target = None  # シーケンス終了後、直ちにSM1の現在値が追従できるようにリセット
+
     def _broadcast_sync(self, payload: dict):
         """ROS2コールバック（同期）からWebSocketブロードキャストをスケジュールする"""
         raw = json.dumps(payload)
@@ -709,6 +938,7 @@ def main(args=None):
 
     def _graceful_shutdown(*_args):
         node._external_stop_event.set()
+        node._mdd1_seq_cancel_event.set()
         server.should_exit = True
 
     signal.signal(signal.SIGINT, _graceful_shutdown)
@@ -720,6 +950,7 @@ def main(args=None):
         pass
     finally:
         node._external_stop_event.set()
+        node._mdd1_seq_cancel_event.set()
         server.should_exit = True
         node.destroy_node()
         rclpy.shutdown()

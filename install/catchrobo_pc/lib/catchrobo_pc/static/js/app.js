@@ -31,10 +31,10 @@ const state = {
   // MDD1 状態
   mdd1: {
     motors: [
-      { target: 0, mode: 0, p: 10, i: 0, d: 0, wheel: 65, dir: 1 },
-      { target: 0, mode: 0, p: 10, i: 0, d: 0, wheel: 65, dir: 1 },
-      { target: 0, mode: 0, p: 10, i: 0, d: 0, wheel: 65, dir: 1 },
-      { target: 0, mode: 0, p: 10, i: 0, d: 0, wheel: 65, dir: 1 },
+      { target: 0, mode: 1, p: 10, i: 0, d: 0, wheel: 65, dir: 1 },
+      { target: 0, mode: 1, p: 10, i: 0, d: 0, wheel: 65, dir: 1 },
+      { target: 0, mode: 1, p: 10, i: 0, d: 0, wheel: 65, dir: 1 },
+      { target: 0, mode: 1, p: 10, i: 0, d: 0, wheel: 65, dir: 1 },
     ],
     appMode: 0,
     sw: [0, 0, 0, 0],
@@ -159,6 +159,20 @@ function handleServerMessage(msg) {
       break;
     case 'network_info':
       updateNetworkInfoUI(msg.data);
+      break;
+    case 'mdd1_target_sync':
+      if (msg.targets) {
+        for (let i = 0; i < 4; i++) {
+          const el = document.getElementById(`mdd1-target-${i}`);
+          if (el) el.value = msg.targets[i];
+          if (state.mdd1.motors[i]) state.mdd1.motors[i].target = msg.targets[i];
+        }
+      }
+      break;
+    case 'log':
+      if (msg.message) {
+        addLog(msg.message, msg.level || 'info');
+      }
       break;
   }
 }

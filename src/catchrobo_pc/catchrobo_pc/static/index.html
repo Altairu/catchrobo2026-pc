@@ -718,8 +718,8 @@
             </div>
             <div><label>Mode</label>
               <select onchange="updateMddParam('${name}',${i},'mode',this.value)">
-                <option value="0">Speed</option>
-                <option value="1">Angle</option>
+                <option value="0"${!isMdd1 ? ' selected' : ''}>Speed</option>
+                <option value="1"${isMdd1 ? ' selected' : ''}>Angle</option>
                 <option value="2">Pos</option>
               </select>
             </div>
