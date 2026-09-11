@@ -70,7 +70,7 @@ catchrobo2026-pc/
 **MDD2:**
 - `M1(deg)` → `LM2` 目標値 (反転, `/catchrobo/motor_cmd[3]`)
 - `M2(deg)` → `LM1` 目標値 (反転, `/catchrobo/motor_cmd[2]`)
-- `M3(deg)` → `Servo1` ch4 (85〜140度)
+- `M3(deg)` → `Servo1` ch4 (85〜155度)
 - `M4(deg)` → `Servo1` ch3 (0〜180度, 反転)
 - `SW1` ON のとき `SV_1` ch1, ch2 ON
 - `SW2` ON のとき `Servo1` ch2 が 40度 (OFF時 70度)

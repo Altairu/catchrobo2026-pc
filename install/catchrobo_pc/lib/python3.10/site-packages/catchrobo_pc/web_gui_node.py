@@ -642,11 +642,11 @@ class WebGuiNode(Node):
             except (ValueError, TypeError) as e:
                 self.get_logger().error(f'サーボch3目標値計算エラー: {e}')
 
-            # MDD2のM3に＋90したものをServo1のch4に代入（85〜140まで）
+            # MDD2のM3に＋90したものをServo1のch4に代入（85〜155まで）
             # 表示仕様に合わせて符号を反転して適用
             try:
                 servo1_ch4 = int(round(-float(mdd2_deg[2]) + 90.0))
-                servo1_ch4 = max(85, min(140, servo1_ch4))
+                servo1_ch4 = max(85, min(155, servo1_ch4))
                 if next_servo_targets[3] != servo1_ch4:
                     next_servo_targets[3] = servo1_ch4
                     servo_updated = True
@@ -684,13 +684,13 @@ class WebGuiNode(Node):
                     now = time.time()
                     if (mdd2_sw3_on or mdd2_sw4_on) and (now - self._servo1_ch6_last_update > 0.05):
                         if mdd2_sw3_on and not mdd2_sw4_on:
-                            servo1_ch6 = min(180, next_servo_targets[5] + 1)
+                            servo1_ch6 = min(180, next_servo_targets[5] + 3)
                             if next_servo_targets[5] != servo1_ch6:
                                 next_servo_targets[5] = servo1_ch6
                                 servo_updated = True
                                 self._servo1_ch6_last_update = now
                         elif mdd2_sw4_on and not mdd2_sw3_on:
-                            servo1_ch6 = max(0, next_servo_targets[5] - 1)
+                            servo1_ch6 = max(0, next_servo_targets[5] - 3)
                             if next_servo_targets[5] != servo1_ch6:
                                 next_servo_targets[5] = servo1_ch6
                                 servo_updated = True
