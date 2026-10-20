@@ -1,12 +1,11 @@
 Metadata-Version: 2.1
-Name: catchrobo-pc
+Name: catchrobo_pc
 Version: 0.1.0
 Summary: Catchrobo 2026 PC側パッケージ
-Home-page: UNKNOWN
 Maintainer: Altair
 Maintainer-email: altair@example.com
 License: MIT
-Platform: UNKNOWN
-
-UNKNOWN
-
+Requires-Dist: setuptools
+Requires-Dist: fastapi
+Requires-Dist: uvicorn
+Requires-Dist: pyserial

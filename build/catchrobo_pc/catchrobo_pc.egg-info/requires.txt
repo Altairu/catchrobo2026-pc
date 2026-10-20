@@ -1,4 +1,4 @@
-fastapi
-pyserial
 setuptools
+fastapi
 uvicorn
+pyserial

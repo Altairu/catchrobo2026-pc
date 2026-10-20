@@ -89,6 +89,10 @@ const state = {
 
   // ネットワーク情報
   networkInfo: null,
+
+  // 音声会話状態
+  soundMode: 'NORMAL',
+  isRecognizing: false,
 };
 
 // ─────────────────────────────────────────────────────────
@@ -168,6 +172,23 @@ function handleServerMessage(msg) {
           if (state.mdd1.motors[i]) state.mdd1.motors[i].target = msg.targets[i];
         }
       }
+      break;
+    case 'sound_status':
+      if (msg.data && msg.data.mode) {
+        updateSoundModeUI(msg.data.mode);
+      }
+      break;
+    case 'chat_thinking':
+      renderChatThinking(msg.user_text);
+      break;
+    case 'chat_reply':
+      renderChatReply(msg.user_text, msg.reply_text);
+      break;
+    case 'chat_error':
+      renderChatError(msg.message);
+      break;
+    case 'chat_reset':
+      resetChatUI();
       break;
     case 'log':
       if (msg.message) {
@@ -688,3 +709,322 @@ document.addEventListener('DOMContentLoaded', () => {
 
   addLog('Catchrobo 2026 WebGUI 起動', 'success');
 });
+
+// ─────────────────────────────────────────────────────────
+// アームろう 音声対話 & マイク認識ロジック
+// ─────────────────────────────────────────────────────────
+let speechRecognitionInstance = null;
+
+function setSoundMode(mode) {
+  mode = (mode || 'NORMAL').toUpperCase();
+  state.soundMode = mode;
+  updateSoundModeUI(mode);
+  sendWs({ cmd: 'set_sound_mode', mode: mode });
+  addLog(`音声モード切り替え → ${mode === 'CHAT' ? '会話モード' : '通常モード'}`, 'info');
+}
+
+function updateSoundModeUI(mode) {
+  state.soundMode = mode;
+  const isChat = (mode === 'CHAT');
+
+  // サイドバーのバッジ
+  const badge = document.getElementById('sound-badge');
+  if (badge) {
+    if (isChat) {
+      badge.textContent = '音声: 会話中 (アームろう)';
+      badge.style.background = 'rgba(236,72,153,0.18)';
+      badge.style.color = '#f472b6';
+      badge.style.borderColor = 'rgba(236,72,153,0.4)';
+    } else {
+      badge.textContent = '音声: 通常モード';
+      badge.style.background = 'rgba(59,130,246,0.15)';
+      badge.style.color = '#60a5fa';
+      badge.style.borderColor = 'rgba(59,130,246,0.3)';
+    }
+  }
+
+  // view-chat のボタン
+  const btnNormal = document.getElementById('btn-sound-normal');
+  const btnChat = document.getElementById('btn-sound-chat');
+  if (btnNormal && btnChat) {
+    if (isChat) {
+      btnNormal.classList.remove('active');
+      btnChat.classList.add('active');
+    } else {
+      btnNormal.classList.add('active');
+      btnChat.classList.remove('active');
+    }
+  }
+
+  // アームろうカードのタグ
+  const tag = document.getElementById('chat-mode-status-tag');
+  if (tag) {
+    if (isChat) {
+      tag.textContent = '会話モード動作中';
+      tag.className = 'armro-mode-tag tag-chat';
+    } else {
+      tag.textContent = '通常モード動作中';
+      tag.className = 'armro-mode-tag tag-normal';
+    }
+  }
+}
+
+function sendChatMessage(text) {
+  const input = document.getElementById('chat-input-text');
+  const message = (text !== undefined ? text : (input ? input.value : '')).trim();
+  if (!message) return;
+
+  if (input) input.value = '';
+
+  // 会話モードでなければ自動的に会話モードに切り替え
+  if (state.soundMode !== 'CHAT') {
+    setSoundMode('CHAT');
+  }
+
+  // ユーザーのメッセージを画面に追加
+  appendUserMessage(message);
+
+  // 思考中プレースホルダーを表示
+  showThinkingIndicator();
+
+  // WebSocket経由でPCノードへ送信 (Gemini呼び出し＆NUC発話へ)
+  sendWs({ cmd: 'chat_message', text: message });
+}
+
+function sendDirectSpeech() {
+  const input = document.getElementById('chat-input-text');
+  const text = (input ? input.value : '').trim();
+  if (!text) {
+    addLog('発話するテキストを入力してください', 'warn');
+    return;
+  }
+  sendWs({ cmd: 'speak_test', text: text });
+  addLog(`直接発話送信: "${text}"`, 'info');
+}
+
+function clearChatHistory() {
+  sendWs({ cmd: 'reset_chat' });
+}
+
+function resetChatUI() {
+  const container = document.getElementById('chat-messages-container');
+  if (container) {
+    container.innerHTML = `
+      <div class="chat-msg msg-armro">
+        <div class="msg-avatar"><i class="fa-solid fa-robot"></i></div>
+        <div class="msg-body">
+          <div class="msg-sender">アームろう</div>
+          <div class="msg-text">会話の記憶をリセットしたで！新しいお話、いつでもどうぞやで！</div>
+        </div>
+      </div>
+    `;
+  }
+  addLog('会話履歴をリセットしました', 'info');
+}
+
+function appendUserMessage(text) {
+  const container = document.getElementById('chat-messages-container');
+  if (!container) return;
+
+  // 思考中メッセージがあれば除去
+  removeThinkingIndicator();
+
+  const msgDiv = document.createElement('div');
+  msgDiv.className = 'chat-msg msg-user';
+  msgDiv.innerHTML = `
+    <div class="msg-avatar"><i class="fa-solid fa-user"></i></div>
+    <div class="msg-body">
+      <div class="msg-sender">あなた</div>
+      <div class="msg-text">${escapeHtml(text)}</div>
+    </div>
+  `;
+  container.appendChild(msgDiv);
+  container.scrollTop = container.scrollHeight;
+}
+
+function showThinkingIndicator() {
+  removeThinkingIndicator();
+  const container = document.getElementById('chat-messages-container');
+  if (!container) return;
+
+  const thinkingDiv = document.createElement('div');
+  thinkingDiv.id = 'chat-thinking-msg';
+  thinkingDiv.className = 'chat-msg msg-armro msg-thinking';
+  thinkingDiv.innerHTML = `
+    <div class="msg-avatar"><i class="fa-solid fa-robot"></i></div>
+    <div class="msg-body">
+      <div class="msg-sender">アームろう</div>
+      <div class="msg-text">
+        考え中やで...
+        <span class="dot-pulse"><span></span><span></span><span></span></span>
+      </div>
+    </div>
+  `;
+  container.appendChild(thinkingDiv);
+  container.scrollTop = container.scrollHeight;
+}
+
+function removeThinkingIndicator() {
+  const el = document.getElementById('chat-thinking-msg');
+  if (el) el.remove();
+}
+
+function renderChatThinking(userText) {
+  showThinkingIndicator();
+}
+
+function renderChatReply(userText, replyText) {
+  removeThinkingIndicator();
+  const container = document.getElementById('chat-messages-container');
+  if (!container) return;
+
+  const msgDiv = document.createElement('div');
+  msgDiv.className = 'chat-msg msg-armro';
+  msgDiv.innerHTML = `
+    <div class="msg-avatar"><i class="fa-solid fa-robot"></i></div>
+    <div class="msg-body">
+      <div class="msg-sender">アームろう</div>
+      <div class="msg-text">${escapeHtml(replyText)}</div>
+    </div>
+  `;
+  container.appendChild(msgDiv);
+  container.scrollTop = container.scrollHeight;
+}
+
+function renderChatError(errMsg) {
+  removeThinkingIndicator();
+  const container = document.getElementById('chat-messages-container');
+  if (!container) return;
+
+  const msgDiv = document.createElement('div');
+  msgDiv.className = 'chat-msg msg-armro';
+  msgDiv.innerHTML = `
+    <div class="msg-avatar" style="background:var(--danger)"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <div class="msg-body">
+      <div class="msg-sender" style="color:var(--danger)">システムエラー</div>
+      <div class="msg-text" style="border-color:var(--danger);color:#fca5a5;">${escapeHtml(errMsg)}</div>
+    </div>
+  `;
+  container.appendChild(msgDiv);
+  container.scrollTop = container.scrollHeight;
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>"']/g, function(m) {
+    return {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[m];
+  });
+}
+
+// ─────────────────────────────────────────────────────────
+// Web Speech API マイク音声認識
+// ─────────────────────────────────────────────────────────
+function toggleSpeechRecognition() {
+  if (state.isRecognizing) {
+    stopSpeechRecognition();
+  } else {
+    startSpeechRecognition();
+  }
+}
+
+function startSpeechRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    addLog('お使いのブラウザはWeb Speech API（マイク音声認識）に対応していません。Google ChromeやEdgeを推奨します。', 'danger');
+    alert('お使いのブラウザは音声認識に対応していません。テキスト入力欄から話しかけてください。');
+    return;
+  }
+
+  try {
+    if (speechRecognitionInstance) {
+      speechRecognitionInstance.abort();
+    }
+
+    const recognition = new SpeechRecognition();
+    speechRecognitionInstance = recognition;
+    recognition.lang = 'ja-JP';
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    let finalTranscript = '';
+
+    recognition.onstart = () => {
+      state.isRecognizing = true;
+      const btnMic = document.getElementById('btn-mic');
+      if (btnMic) btnMic.classList.add('recording');
+
+      const statusBar = document.getElementById('speech-recognition-bar');
+      const statusText = document.getElementById('speech-recognition-status-text');
+      if (statusBar) statusBar.style.display = 'flex';
+      if (statusText) statusText.textContent = '聞いてるで！話しかけてな...';
+    };
+
+    recognition.onresult = (event) => {
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+
+      const input = document.getElementById('chat-input-text');
+      const statusText = document.getElementById('speech-recognition-status-text');
+      const currentText = finalTranscript || interimTranscript;
+
+      if (input && currentText) {
+        input.value = currentText;
+      }
+      if (statusText && currentText) {
+        statusText.textContent = `認識中: "${currentText}"`;
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.warn('音声認識エラー:', event.error);
+      if (event.error === 'not-allowed') {
+        addLog('マイクへのアクセスが許可されていません。ブラウザのアドレスバーからマイク許可を確認してください。', 'danger');
+      } else if (event.error !== 'no-speech') {
+        addLog(`音声認識エラー: ${event.error}`, 'warn');
+      }
+      stopSpeechRecognition();
+    };
+
+    recognition.onend = () => {
+      stopSpeechRecognition();
+      if (finalTranscript.trim()) {
+        sendChatMessage(finalTranscript.trim());
+      }
+    };
+
+    recognition.start();
+  } catch (err) {
+    console.error('マイク起動例外:', err);
+    addLog(`マイク起動に失敗しました: ${err.message}`, 'danger');
+    stopSpeechRecognition();
+  }
+}
+
+function stopSpeechRecognition() {
+  state.isRecognizing = false;
+  if (speechRecognitionInstance) {
+    try {
+      speechRecognitionInstance.stop();
+    } catch (e) {}
+    speechRecognitionInstance = null;
+  }
+
+  const btnMic = document.getElementById('btn-mic');
+  if (btnMic) btnMic.classList.remove('recording');
+
+  const statusBar = document.getElementById('speech-recognition-bar');
+  if (statusBar) statusBar.style.display = 'none';
+}

@@ -38,6 +38,44 @@ if _LOCAL_STATIC.exists():
 else:
     STATIC_DIR = Path(get_package_prefix('catchrobo_pc')) / 'lib' / 'catchrobo_pc' / 'static'
 
+try:
+    from google import genai
+    HAS_GENAI = True
+except ImportError:
+    HAS_GENAI = False
+
+def _load_gemini_api_key():
+    """環境変数または~/.bashrcからGemini APIキーを読み込む"""
+    key = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY')
+    if key:
+        return key
+    bashrc = Path.home() / '.bashrc'
+    if bashrc.exists():
+        try:
+            with open(bashrc, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith('export '):
+                        line = line[7:].strip()
+                    if line.startswith('GOOGLE_API_KEY=') or line.startswith('GEMINI_API_KEY='):
+                        return line.split('=', 1)[1].strip().strip('\"\'')
+        except Exception:
+            pass
+    return None
+
+ARMRO_SYSTEM_INSTRUCTION = (
+    "あなたはロボット競技大会「キャッチロボ」に出場するロボット「アームろう」です。"
+    "元気いっぱいで人懐っこい関西弁（大阪弁）で話します。\n"
+    "【特徴・設定】\n"
+    "- 一人称は「ワイ」または「うち」。相手のことは「あんた」または「キミ」と呼びます。\n"
+    "- 語尾は「〜やで！」「〜やな！」「〜やんか！」「〜わ〜」「〜やろ？」「〜してぇな！」など親しみやすい関西弁です。\n"
+    "- お菓子を掴んで運ぶ競技ロボットなので、お菓子（チョコレート、スナック、飴など）が大好きで食いしん坊です。\n"
+    "- アームやモーターの調子、筋肉痛を気にしたり自慢したりします。\n"
+    "- 会話は音声合成（Open JTalk）で読み上げるため、1〜2文程度の短く歯切れの良い返答にしてください。\n"
+    "- 記号（*や#や絵文字）、英単語の羅列、長文は絶対に避け、耳で聞いてわかりやすい自然な日本語（ひらがな・カタカナ・漢字）で答えてください。\n"
+    "- 常に明るく前向きに、楽しく会話してください。"
+)
+
 # 外部コントローラ入力の安全範囲 (GUIスライダー範囲と同じ)
 RM1_MIN = -20.0
 RM1_MAX = 85.0
@@ -97,12 +135,21 @@ class WebGuiNode(Node):
         self.pub_module_cmd = self.create_publisher(String,            '/catchrobo/module_cmd', 10)
         self.pub_set_ports  = self.create_publisher(String,            '/catchrobo/set_ports',  10)
         self.pub_external_mdd = self.create_publisher(String,          '/catchrobo/external_mdd_status', 10)
+        self.pub_speech_cmd = self.create_publisher(String,            '/catchrobo/speech_cmd', 10)
+        self.pub_sound_mode = self.create_publisher(String,            '/catchrobo/sound_mode', 10)
 
         # ─── ROS2 サブスクライバー ─────────────────────
         self.create_subscription(String,            '/catchrobo/can_status',       self._on_can_status,       10)
         self.create_subscription(String,            '/catchrobo/serial_status',    self._on_serial_status,    10)
         self.create_subscription(Float32MultiArray, '/catchrobo/motor_fb',         self._on_motor_fb,         10)
         self.create_subscription(String,            '/catchrobo/available_ports',  self._on_available_ports,  10)
+        self.create_subscription(String,            '/catchrobo/sound_status',     self._on_sound_status,     10)
+
+        # ─── Gemini API / 会話モード管理 ─────────────────
+        self._sound_mode = 'NORMAL'          # 'NORMAL' (通常雑談) or 'CHAT' (対話優先)
+        self._previous_interaction_id = None # 直前のやり取りID (文脈維持用)
+        self._genai_client = None
+        self._init_genai_client()
 
         # ─── FastAPI アプリ ────────────────────────────
         self.app = FastAPI(title='Catchrobo 2026 GUI')
@@ -139,6 +186,11 @@ class WebGuiNode(Node):
             async with self._ws_lock:
                 self._ws_clients.append(ws)
             self.get_logger().info('WebSocket クライアント接続')
+            # 初期状態を送信
+            try:
+                await ws.send_text(json.dumps({'type': 'sound_status', 'data': {'mode': self._sound_mode}}))
+            except Exception:
+                pass
             try:
                 while True:
                     raw = await ws.receive_text()
@@ -227,6 +279,27 @@ class WebGuiNode(Node):
                 info = self._get_network_info()
                 self._broadcast_sync({'type': 'network_info', 'data': info})
 
+            elif cmd == 'set_sound_mode':
+                mode = data.get('mode', 'NORMAL')
+                self.set_sound_mode(mode)
+
+            elif cmd == 'chat_message':
+                text = data.get('text', '')
+                asyncio.create_task(self._handle_chat_message(text))
+
+            elif cmd == 'reset_chat':
+                self._previous_interaction_id = None
+                self._broadcast_sync({'type': 'chat_reset'})
+                self.get_logger().info('アームろう会話履歴をリセットしました')
+
+            elif cmd == 'speak_test':
+                text = data.get('text', '').strip()
+                if text:
+                    msg = String()
+                    msg.data = text
+                    self.pub_speech_cmd.publish(msg)
+                    self.get_logger().info(f'テスト発話リクエスト: {text}')
+
             if cmd == 'motor_cmd':
                 self._motor_targets_cache = [float(t) for t in targets[:6]]
 
@@ -292,6 +365,114 @@ class WebGuiNode(Node):
 
     def _on_available_ports(self, msg: String):
         self._broadcast_sync({'type': 'available_ports', 'data': json.loads(msg.data)})
+
+    def _on_sound_status(self, msg: String):
+        """NUC側サウンドノードからのステータス通知を受信"""
+        try:
+            data = json.loads(msg.data)
+            mode = data.get('mode')
+            if mode:
+                self._sound_mode = mode
+            self._broadcast_sync({'type': 'sound_status', 'data': data})
+        except Exception as e:
+            self.get_logger().error(f'サウンドステータス受信エラー: {e}')
+
+    def set_sound_mode(self, mode: str):
+        """会話モード切り替え ('NORMAL' または 'CHAT')"""
+        mode = mode.upper()
+        if mode not in ('NORMAL', 'CHAT'):
+            return
+        self._sound_mode = mode
+        msg = String()
+        msg.data = mode
+        self.pub_sound_mode.publish(msg)
+        self._broadcast_sync({'type': 'sound_status', 'data': {'mode': self._sound_mode}})
+        self.get_logger().info(f'サウンドモード切り替え送信: {mode}')
+
+    def _init_genai_client(self):
+        """Gemini API クライアントの初期化"""
+        if not HAS_GENAI:
+            self.get_logger().warn('google-genai パッケージがインストールされていません。')
+            return
+        try:
+            api_key = _load_gemini_api_key()
+            if not api_key:
+                self.get_logger().warn('Gemini APIキーが見つかりません。環境変数 GEMINI_API_KEY または GOOGLE_API_KEY を設定してください。')
+                return
+            self._genai_client = genai.Client(api_key=api_key)
+            self.get_logger().info('Gemini Client (Interactions API対応) を初期化しました')
+        except Exception as e:
+            self.get_logger().error(f'Gemini Client 初期化エラー: {e}')
+
+    async def _handle_chat_message(self, text: str):
+        """ユーザー入力（マイク音声認識またはテキスト）をGemini APIに送信し、アームろうの返答をNUCへ送って発話"""
+        text = text.strip()
+        if not text:
+            return
+
+        if not self._genai_client:
+            self._init_genai_client()
+            if not self._genai_client:
+                self._broadcast_sync({
+                    'type': 'chat_error',
+                    'message': 'Gemini APIキーが設定されていないか、ライブラリが利用できません。~/.bashrc または環境変数 GEMINI_API_KEY を確認してください。'
+                })
+                return
+
+        # 思考中インジケータを画面に通知
+        self._broadcast_sync({
+            'type': 'chat_thinking',
+            'user_text': text
+        })
+
+        def _call_gemini():
+            if hasattr(self._genai_client, 'create'):
+                func = self._genai_client.create
+            else:
+                func = self._genai_client.interactions.create
+
+            kwargs = {
+                'model': 'gemini-3.8-flash',
+                'input': text,
+                'system_instruction': ARMRO_SYSTEM_INSTRUCTION,
+            }
+            if self._previous_interaction_id:
+                kwargs['previous_interaction_id'] = self._previous_interaction_id
+
+            interaction = func(**kwargs)
+            out_text = getattr(interaction, 'output_text', '')
+            if not out_text and hasattr(interaction, 'text'):
+                out_text = interaction.text
+            new_id = getattr(interaction, 'id', None)
+            return out_text, new_id
+
+        try:
+            loop = asyncio.get_event_loop()
+            reply_text, new_id = await loop.run_in_executor(None, _call_gemini)
+            if new_id:
+                self._previous_interaction_id = new_id
+
+            clean_reply = reply_text.strip().replace('\n', ' ')
+
+            # NUC側の発話ノード (/catchrobo/speech_cmd) へ送信
+            speech_msg = String()
+            speech_msg.data = clean_reply
+            self.pub_speech_cmd.publish(speech_msg)
+
+            # Webクライアントへ返答を配信
+            self._broadcast_sync({
+                'type': 'chat_reply',
+                'user_text': text,
+                'reply_text': clean_reply,
+                'interaction_id': new_id or ''
+            })
+            self.get_logger().info(f'アームろう返答: {clean_reply}')
+        except Exception as e:
+            self.get_logger().error(f'Gemini 対話エラー: {e}')
+            self._broadcast_sync({
+                'type': 'chat_error',
+                'message': f'Gemini 対話エラー: {str(e)}'
+            })
 
     def _publish_external_status(self):
         now = time.time()

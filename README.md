@@ -14,13 +14,13 @@ catchrobo2026-pc/
 ├── src/
 │   └── catchrobo_pc/               # ROS2 パッケージ
 │       └── catchrobo_pc/
-│           ├── web_gui_node.py      # FastAPI + WebSocket + ROS2 ブリッジノード
+│           ├── web_gui_node.py      # FastAPI + WebSocket + ROS2 + Gemini 対話ブリッジノード
 │           └── static/             # ブラウザ向け静的ファイル
-│               ├── index.html      # メインHTML (5タブGUI)
+│               ├── index.html      # メインHTML (6タブGUI)
 │               ├── css/
-│               │   └── style.css   # グラスモーフィズム ダークテーマ
+│               │   └── style.css   # グラスモーフィズム ダークテーマ (チャット・マイクUI対応)
 │               └── js/
-│                   └── app.js      # WebSocket クライアント + UI ロジック
+│                   └── app.js      # WebSocket クライアント + 音声認識 + UI ロジック
 └── launch/
     └── pc.launch.py                # GUIノード起動ファイル
 ```
@@ -29,15 +29,44 @@ catchrobo2026-pc/
 
 ## GUI 機能一覧
 
-ブラウザで `http://localhost:8080` を開くと5つのタブが使用可能。
+ブラウザで `http://localhost:8080` を開くと6つのタブが使用可能。
 
 | タブ                 | 機能                                                                                           |
 | -------------------- | ---------------------------------------------------------------------------------------------- |
 | **接続設定**         | NUCのUSBポートをドロップダウンで選択・適用。CAN/シリアル統計表示。外部コントローラモードON/OFF |
+| **アームろう対話**   | Gemini 3.8 Flash によるロボット対話・マイク音声入力・通常/会話モード切替・タイムライン表示     |
 | **モジュール制御**   | MDD1 (PID目標値・パラメータ) / SV_1・SV_2 (バルブON/OFF)                                       |
 | **ロボマスモーター** | 制御モード選択・6軸スライダー・フィードバック表示                                              |
 | **システム監視**     | TX/RX/ERRカウンタ・制御モード状態                                                              |
 | **ログ**             | WebSocket通信ログのリアルタイム表示                                                            |
+
+### アームろう音声対話システム (Gemini 3.8 Flash)
+
+PCのWeb GUIからマイクやテキストで話しかけることで、Google Gemini API (`gemini-3.8-flash`) と連携したロボットキャラクター「**アームろう**」とリアルタイムに対話できるシステムです。
+
+#### 1. システムの流れ
+1. **マイク/テキスト入力**: ブラウザの Web Speech API（マイクボタン 🎤）またはテキスト入力欄から日本語で入力。
+2. **Gemini API 呼び出し (PC側)**: `web_gui_node` が `google.genai` の **Interactions API** を呼び出し、関西弁の返答テキストを生成。
+3. **文脈維持**: 前回対話の `interaction_id` を引き継ぐことで、前後の文脈を理解した自然な会話を継続。
+4. **音声合成・発話 (NUC側)**: 返答テキストを `/catchrobo/speech_cmd` トピックでNUCへ送信し、Open JTalk で即座に発話。
+
+#### 2. 会話モード切替
+画面上部のボタングループまたはサイドバーからモードを切り替え可能:
+- **通常モード (`NORMAL`)**:
+  - 従来通り、CAN/シリアル接続状態や制御モードの変更アナウンス、および約1分ごとのランダム雑談アナウンスを行います。
+- **会話モード (`CHAT`)**:
+  - ユーザーとの対話を優先するモード。NUC側のランダム雑談タイマーが自動抑制され、対話の邪魔になりません（通信途絶などの重要警告は通常通り発話されます）。
+
+#### 3. APIキーの設定
+以下のいずれかの方法で Gemini API キーを設定します（`web_gui_node` 起動時に自動検出されます）:
+```bash
+# ~/.bashrc に記載されている場合は自動読み込みされます
+export GOOGLE_API_KEY="AIzaSy..."
+# または
+export GEMINI_API_KEY="AIzaSy..."
+```
+
+---
 
 ### スマホ用簡易UI (`/mobile`)
 
@@ -109,15 +138,18 @@ NUCが起動していれば `/catchrobo/available_ports` トピックが自動�
 | `/catchrobo/module_cmd`          | `String` (JSON)     | MDD/Solenoid 操作コマンド (下記参照)                      |
 | `/catchrobo/set_ports`           | `String` (JSON)     | `{"can_port":"...", "serial_port":"..."}`                 |
 | `/catchrobo/external_mdd_status` | `String` (JSON)     | 外部コントローラ生データ (MDD1/MDD2 deg, SW, port, stamp) |
+| `/catchrobo/speech_cmd`          | `String`            | Gemini対話返答/直接発話テキスト (NUCで音声再生)           |
+| `/catchrobo/sound_mode`          | `String`            | 音声モード切替 (`"NORMAL"` または `"CHAT"`)               |
 
 ### Subscribe (NUCから受信)
 
-| トピック                     | 型                  | 内容                              |
-| ---------------------------- | ------------------- | --------------------------------- |
-| `/catchrobo/motor_fb`        | `Float32MultiArray` | 角度×6 + RPM×2                    |
-| `/catchrobo/can_status`      | `String` (JSON)     | CAN接続状態・モジュール状態・統計 |
-| `/catchrobo/serial_status`   | `String` (JSON)     | シリアル接続状態・統計            |
-| `/catchrobo/available_ports` | `String` (JSON)     | 利用可能ポート一覧                |
+| トピック                     | 型                  | 内容                                           |
+| ---------------------------- | ------------------- | ---------------------------------------------- |
+| `/catchrobo/motor_fb`        | `Float32MultiArray` | 角度×6 + RPM×2                                 |
+| `/catchrobo/can_status`      | `String` (JSON)     | CAN接続状態・モジュール状態・統計              |
+| `/catchrobo/serial_status`   | `String` (JSON)     | シリアル接続状態・統計                         |
+| `/catchrobo/available_ports` | `String` (JSON)     | 利用可能ポート一覧                             |
+| `/catchrobo/sound_status`    | `String` (JSON)     | サウンドノード状態・現在のモード (`mode` など) |
 
 ### `module_cmd` JSON フォーマット
 
@@ -152,14 +184,18 @@ NUCが起動していれば `/catchrobo/available_ports` トピックが自動�
 
 ### ブラウザ → サーバー
 
-| `cmd` フィールド      | 内容                                                       |
-| --------------------- | ---------------------------------------------------------- |
-| `motor_cmd`           | `{"cmd":"motor_cmd","targets":[0,0,0,0,0,0]}`              |
-| `motor_mode`          | `{"cmd":"motor_mode","mode":1}`                            |
-| `module_cmd`          | `{"cmd":"module_cmd","payload":{...}}`                     |
-| `set_ports`           | `{"cmd":"set_ports","can_port":"...","serial_port":"..."}` |
-| `ext_ctrl_mode`       | `{"cmd":"ext_ctrl_mode","enabled":true}`                   |
-| `ext_ctrl_get_status` | `{"cmd":"ext_ctrl_get_status"}`                            |
+| `cmd` フィールド      | 内容                                                                     |
+| --------------------- | ------------------------------------------------------------------------ |
+| `motor_cmd`           | `{"cmd":"motor_cmd","targets":[0,0,0,0,0,0]}`                            |
+| `motor_mode`          | `{"cmd":"motor_mode","mode":1}`                                          |
+| `module_cmd`          | `{"cmd":"module_cmd","payload":{...}}`                                   |
+| `set_ports`           | `{"cmd":"set_ports","can_port":"...","serial_port":"..."}`               |
+| `ext_ctrl_mode`       | `{"cmd":"ext_ctrl_mode","enabled":true}`                                 |
+| `ext_ctrl_get_status` | `{"cmd":"ext_ctrl_get_status"}`                                          |
+| `set_sound_mode`      | `{"cmd":"set_sound_mode","mode":"NORMAL"\|"CHAT"}`                       |
+| `chat_message`        | `{"cmd":"chat_message","text":"..."}` (Gemini呼び出し＆NUC発話)           |
+| `reset_chat`          | `{"cmd":"reset_chat"}` (対話文脈IDのリセット)                            |
+| `speak_test`          | `{"cmd":"speak_test","text":"..."}` (任意テキストの直接発話)             |
 
 ### 外部シリアル中継トピック (`/catchrobo/external_mdd_status`)
 
@@ -188,23 +224,29 @@ NUCが起動していれば `/catchrobo/available_ports` トピックが自動�
 | `motor_fb`            | モーターフィードバック値                                     |
 | `available_ports`     | 利用可能なシリアルポート一覧                                 |
 | `external_controller` | 外部コントローラ状態 (enabled/online/port/mdd1_deg/mdd1_lsw) |
+| `sound_status`        | サウンドノード状態 (`{"mode":"NORMAL"\|"CHAT",...}`)          |
+| `chat_thinking`       | Gemini思考中ステータス通知 (`{"user_text":"..."}`)           |
+| `chat_reply`          | アームろう返答通知 (`{"reply_text":"...","interaction_id":"..."}`) |
+| `chat_error`          | 対話エラー通知 (`{"message":"..."}`)                         |
+| `chat_reset`          | 対話履歴クリア完了通知                                       |
 
 ---
 
 ## 環境要件
 
-| 項目     | バージョン/内容                   |
-| -------- | --------------------------------- |
-| OS       | Ubuntu 22.04 (またはWindows WSL2) |
-| ROS2     | Humble Hawksbill                  |
-| Python   | 3.10                              |
-| fastapi  | `pip3 install fastapi`            |
-| uvicorn  | `pip3 install uvicorn`            |
-| pyserial | `pip3 install pyserial`           |
+| 項目         | バージョン/内容                   |
+| ------------ | --------------------------------- |
+| OS           | Ubuntu 22.04 (またはWindows WSL2) |
+| ROS2         | Humble Hawksbill                  |
+| Python       | 3.10                              |
+| fastapi      | `pip3 install fastapi`            |
+| uvicorn      | `pip3 install uvicorn`            |
+| pyserial     | `pip3 install pyserial`           |
+| google-genai | `pip3 install google-genai`       |
 
 **まとめてインストール:**
 ```bash
-pip3 install fastapi uvicorn[standard] pyserial
+pip3 install fastapi uvicorn[standard] pyserial google-genai
 ```
 
 ---

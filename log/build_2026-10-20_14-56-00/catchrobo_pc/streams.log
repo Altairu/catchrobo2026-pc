@@ -1,0 +1,30 @@
+[1.758s] Invoking command in '/home/altair/catchrobo2026-pc/build/catchrobo_pc': PYTHONPATH=/home/altair/catchrobo2026-pc/build/catchrobo_pc/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/altair/catchrobo2026-pc/build/catchrobo_pc/build --no-deps symlink_data --force
+[1.903s] /home/altair/.local/lib/python3.10/site-packages/setuptools/_distutils/dist.py:261: UserWarning: Unknown distribution option: 'tests_require'
+[1.903s]   warnings.warn(msg)
+[2.206s] running develop
+[2.471s] running egg_info
+[2.491s] writing catchrobo_pc.egg-info/PKG-INFO
+[2.491s] writing dependency_links to catchrobo_pc.egg-info/dependency_links.txt
+[2.491s] writing entry points to catchrobo_pc.egg-info/entry_points.txt
+[2.491s] writing requirements to catchrobo_pc.egg-info/requires.txt
+[2.492s] writing top-level names to catchrobo_pc.egg-info/top_level.txt
+[2.534s] reading manifest file 'catchrobo_pc.egg-info/SOURCES.txt'
+[2.535s] writing manifest file 'catchrobo_pc.egg-info/SOURCES.txt'
+[2.556s] running build_ext
+[2.557s] Creating /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages/catchrobo-pc.egg-link (link to .)
+[2.557s] Installing debug_node script to /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc
+[2.558s] Installing web_gui_node script to /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc
+[2.558s] 
+[2.558s] Installed /home/altair/catchrobo2026-pc/build/catchrobo_pc
+[2.558s] running symlink_data
+[2.558s] symbolically linking /home/altair/catchrobo2026-pc/build/catchrobo_pc/resource/catchrobo_pc -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/share/ament_index/resource_index/packages
+[2.558s] symbolically linking /home/altair/catchrobo2026-pc/build/catchrobo_pc/package.xml -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/share/catchrobo_pc
+[2.558s] symbolically linking /home/altair/catchrobo2026-pc/build/catchrobo_pc/launch/pc.launch.py -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/share/catchrobo_pc/launch
+[2.558s] symbolically linking /home/altair/catchrobo2026-pc/build/catchrobo_pc/catchrobo_pc/static/css/mobile.css -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc/static/css
+[2.559s] symbolically linking /home/altair/catchrobo2026-pc/build/catchrobo_pc/catchrobo_pc/static/css/style.css -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc/static/css
+[2.559s] symbolically linking /home/altair/catchrobo2026-pc/build/catchrobo_pc/catchrobo_pc/static/js/qrcode.min.js -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc/static/js
+[2.559s] symbolically linking /home/altair/catchrobo2026-pc/build/catchrobo_pc/catchrobo_pc/static/js/app.js -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc/static/js
+[2.559s] symbolically linking /home/altair/catchrobo2026-pc/build/catchrobo_pc/catchrobo_pc/static/js/mobile.js -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc/static/js
+[2.559s] symbolically linking /home/altair/catchrobo2026-pc/build/catchrobo_pc/catchrobo_pc/static/mobile.html -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc/static
+[2.559s] symbolically linking /home/altair/catchrobo2026-pc/build/catchrobo_pc/catchrobo_pc/static/index.html -> /home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/catchrobo_pc/static
+[2.649s] Invoked command in '/home/altair/catchrobo2026-pc/build/catchrobo_pc' returned '0': PYTHONPATH=/home/altair/catchrobo2026-pc/build/catchrobo_pc/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/altair/catchrobo2026-pc/install/catchrobo_pc/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/altair/catchrobo2026-pc/build/catchrobo_pc/build --no-deps symlink_data --force

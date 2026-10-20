@@ -22,6 +22,7 @@
         <p>Robot Web Controller</p>
         <div id="can-badge" class="conn-badge offline">CAN: Offline</div>
         <div id="serial-badge" class="conn-badge offline" style="margin-top:4px">Ser: Offline</div>
+        <div id="sound-badge" class="conn-badge" style="margin-top:4px;background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3)">音声: 通常モード</div>
         <button id="btn-open-qr" class="btn btn-sm btn-ghost" style="margin-top:8px;width:100%;justify-content:center;gap:6px;font-size:12px;" onclick="openQrModal()">
           <i class="fa-solid fa-qrcode"></i> スマホ接続 QR
         </button>
@@ -34,6 +35,9 @@
         <div class="nav-section-label">メニュー</div>
         <button class="nav-item active" data-view="view-connection">
           <span class="icon"><i class="fa-solid fa-plug"></i></span>接続設定
+        </button>
+        <button class="nav-item" data-view="view-chat">
+          <span class="icon"><i class="fa-solid fa-comments"></i></span>アームろう対話
         </button>
         <button class="nav-item" data-view="view-modules">
           <span class="icon"><i class="fa-solid fa-cubes"></i></span>モジュール制御
@@ -548,6 +552,107 @@
             </button>
           </div>
           <div class="log-box" id="log-box"></div>
+        </div>
+      </section>
+
+      <!-- ─── アームろう対話ビュー ───────────────────── -->
+      <section id="view-chat" class="view">
+        <div style="display:flex;flex-direction:column;gap:16px;flex:1;min-height:0;">
+
+          <!-- モード切替 & アームろうステータスカード -->
+          <div class="panel" style="padding:16px;">
+            <div class="panel-header" style="margin-bottom:12px;">
+              <span class="panel-title">
+                <span class="dot" style="background:#ec4899"></span>
+                アームろう 音声対話 (Gemini 3.8 Flash)
+              </span>
+              <div class="sound-mode-btn-group">
+                <button id="btn-sound-normal" class="btn btn-sm active" onclick="setSoundMode('NORMAL')">
+                  <i class="fa-solid fa-volume-high"></i> 通常モード (雑談・警告)
+                </button>
+                <button id="btn-sound-chat" class="btn btn-sm" onclick="setSoundMode('CHAT')">
+                  <i class="fa-solid fa-microphone-lines"></i> 会話モード (対話優先)
+                </button>
+              </div>
+            </div>
+
+            <div class="armro-card">
+              <div class="armro-avatar">
+                <i class="fa-solid fa-robot"></i>
+              </div>
+              <div class="armro-info">
+                <div class="armro-title-row">
+                  <span class="armro-name">アームろう</span>
+                  <span class="armro-badge">キャッチロボ アシスタントAI</span>
+                  <span id="chat-mode-status-tag" class="armro-mode-tag tag-normal">通常モード動作中</span>
+                </div>
+                <p class="armro-desc">
+                  元気いっぱいの関西弁でおしゃべりするアームロボットやで！お菓子を掴んで運ぶのが大好物！マイクボタンを押して話しかけるか、下の入力欄からメッセージを送ってな！
+                </p>
+                <div class="armro-chips">
+                  <span class="armro-chip"><i class="fa-solid fa-cookie-bite"></i> お菓子大好き</span>
+                  <span class="armro-chip"><i class="fa-solid fa-comment"></i> 関西弁</span>
+                  <span class="armro-chip"><i class="fa-solid fa-brain"></i> Gemini 3.8 Flash</span>
+                  <span class="armro-chip"><i class="fa-solid fa-bullhorn"></i> Open JTalk</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- チャット履歴と入力コンソール -->
+          <div class="panel chat-console-panel" style="flex:1;display:flex;flex-direction:column;min-height:420px;">
+            <div class="panel-header">
+              <span class="panel-title">
+                <i class="fa-solid fa-comments" style="color:var(--accent-can)"></i>
+                会話タイムライン
+              </span>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-ghost btn-sm" onclick="clearChatHistory()">
+                  <i class="fa-solid fa-eraser"></i> 履歴クリア
+                </button>
+              </div>
+            </div>
+
+            <!-- メッセージ表示エリア -->
+            <div id="chat-messages-container" class="chat-messages-container">
+              <div class="chat-msg msg-armro">
+                <div class="msg-avatar"><i class="fa-solid fa-robot"></i></div>
+                <div class="msg-body">
+                  <div class="msg-sender">アームろう</div>
+                  <div class="msg-text">まいど！ワイはアームろうやで！マイクで話しかけるか、下の入力欄からメッセージ送ってな！何でも聞いてや〜！</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 音声認識ステータス表示バー -->
+            <div id="speech-recognition-bar" class="speech-recognition-bar" style="display:none;">
+              <span class="rec-wave">
+                <span></span><span></span><span></span><span></span>
+              </span>
+              <span id="speech-recognition-status-text">マイク音声を聞き取り中やで... 話しかけてな！</span>
+              <button class="btn btn-sm btn-ghost" onclick="stopSpeechRecognition()" style="margin-left:auto;padding:2px 8px;font-size:11px;">
+                <i class="fa-solid fa-stop"></i> 停止
+              </button>
+            </div>
+
+            <!-- 入力フォームエリア -->
+            <div class="chat-input-container">
+              <div class="chat-input-wrapper">
+                <button id="btn-mic" class="btn btn-mic" onclick="toggleSpeechRecognition()" title="マイクで話しかける (Web Speech API)">
+                  <i class="fa-solid fa-microphone"></i>
+                </button>
+                <input type="text" id="chat-input-text" class="chat-text-box" placeholder="アームろうに話しかける... (Enterで送信)" onkeydown="if(event.key==='Enter') sendChatMessage()">
+                <button class="btn btn-primary" onclick="sendChatMessage()" style="display:flex;align-items:center;gap:6px;">
+                  <i class="fa-solid fa-paper-plane"></i> 送信
+                </button>
+                <button class="btn btn-ghost btn-sm" onclick="sendDirectSpeech()" title="入力したテキストをそのままNUCから読み上げさせる" style="white-space:nowrap;">
+                  <i class="fa-solid fa-bullhorn"></i> 直接発話
+                </button>
+              </div>
+            </div>
+
+          </div>
+
         </div>
       </section>
 
