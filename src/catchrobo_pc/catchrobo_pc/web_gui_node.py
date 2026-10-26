@@ -50,6 +50,7 @@ def _load_gemini_api_key():
     if key:
         return key
     bashrc = Path.home() / '.bashrc'
+    found_key = None
     if bashrc.exists():
         try:
             with open(bashrc, 'r', encoding='utf-8') as f:
@@ -58,10 +59,12 @@ def _load_gemini_api_key():
                     if line.startswith('export '):
                         line = line[7:].strip()
                     if line.startswith('GOOGLE_API_KEY=') or line.startswith('GEMINI_API_KEY='):
-                        return line.split('=', 1)[1].strip().strip('\"\'')
+                        val = line.split('=', 1)[1].strip().strip('\"\'')
+                        if val:
+                            found_key = val
         except Exception:
             pass
-    return None
+    return found_key
 
 ARMRO_SYSTEM_INSTRUCTION = (
     "あなたはロボット競技大会「キャッチロボ」に出場するロボット「アームろう」です。"
@@ -391,9 +394,15 @@ class WebGuiNode(Node):
 
     def _init_genai_client(self):
         """Gemini API クライアントの初期化"""
+        global HAS_GENAI, genai
         if not HAS_GENAI:
-            self.get_logger().warn('google-genai パッケージがインストールされていません。')
-            return
+            try:
+                from google import genai as _genai
+                genai = _genai
+                HAS_GENAI = True
+            except ImportError:
+                self.get_logger().warn('google-genai パッケージがインストールされていません。')
+                return
         try:
             api_key = _load_gemini_api_key()
             if not api_key:
